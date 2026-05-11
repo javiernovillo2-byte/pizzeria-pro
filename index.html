@@ -265,7 +265,19 @@
         firebase.auth().onAuthStateChanged((user) => {
             if (user) {
                 currentUser = user;
-                showDashboard();
+                showDashboard();function showDashboard() {
+    console.log("Mostrando dashboard");
+
+    document.getElementById('authForm').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+
+    document.getElementById('displayBusinessName').textContent =
+        document.getElementById('businessName').value || 'Mi Pizzería';
+
+    if (firebase.auth().currentUser) {
+        document.getElementById('displayEmail').textContent =
+            firebase.auth().currentUser.email;
+    }
                 loadUserData();
             } else {
                 currentUser = null;
