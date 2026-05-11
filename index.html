@@ -361,10 +361,10 @@
                 createdAt: new Date().toISOString()
             });
         })
-        .then(() => {
-            showSuccess('Cuenta creada exitosamente');
-            showDashboard();
-            loadUserData();
+        .then(() => showSuccess('Cuenta creada exitosamente');
+setTimeout(() => {
+   showDashboard();
+}, 500);
         })
         .catch((error) => {
             showError(error.message);
