@@ -2,121 +2,774 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Pizzería Pro: panel de gestión para pizzerías. Ingresos, gastos, stock y carta con balance en tiempo real.">
+<meta name="theme-color" content="#0f0e0d">
+<!-- PWA / instalable desde mobile -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Pizzería Pro">
 <title>Pizzería Pro</title>
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
+:root {
+  --bg:       #0f0e0d;
+  --surface:  #1a1917;
+  --surface2: #242220;
+  --border:   #2e2c29;
+  --accent:   #ff6b2b;
+  --accent2:  #ffb347;
+  --green:    #4ecb71;
+  --red:      #ff4757;
+  --blue:     #5b8dee;
+  --text:     #f0ece6;
+  --muted:    #7a7570;
+  --sidebar-w: 230px;
+  --radius:   14px;
+}
+
+*{box-sizing:border-box;margin:0;padding:0;}
+html{-webkit-text-size-adjust:100%;}
+
 body{
-font-family:Arial;
-margin:0;
-background:#f4f4f4;
+  font-family:'DM Sans',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100dvh;
+  overflow-x:hidden;
 }
-.wrap{
-max-width:1000px;
-margin:auto;
-padding:20px;
+
+h1,h2,h3,h4{font-family:'Syne',sans-serif;}
+
+/* ─── TOAST ───────────────────────────────── */
+#toastContainer{
+  position:fixed;bottom:24px;right:24px;
+  display:flex;flex-direction:column;gap:8px;
+  z-index:9999;pointer-events:none;
 }
+.toast{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;padding:12px 18px;
+  font-size:14px;min-width:220px;max-width:320px;
+  box-shadow:0 8px 32px rgba(0,0,0,.5);
+  pointer-events:all;
+  animation:slideInToast .25s ease;
+  display:flex;align-items:center;gap:10px;
+}
+.toast.success{border-color:rgba(78,203,113,.4);}
+.toast.error{border-color:rgba(255,71,87,.4);}
+.toast.info{border-color:rgba(91,141,238,.4);}
+@keyframes slideInToast{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:translateY(0);}}
+
+/* ─── AUTH ───────────────────────────────── */
+#authScreen{
+  min-height:100dvh;
+  display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(ellipse at 60% 40%,#2a1a0a 0%,#0f0e0d 70%);
+  padding:16px;
+}
+.auth-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:40px 36px;
+  width:100%;max-width:420px;
+  box-shadow:0 4px 40px rgba(0,0,0,.5);
+}
+.auth-logo{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--accent);margin-bottom:6px;}
+.auth-sub{color:var(--muted);font-size:13px;margin-bottom:28px;}
+
+.tabs{display:flex;background:var(--bg);border-radius:10px;padding:4px;margin-bottom:22px;}
+.tab-btn{
+  flex:1;padding:10px;border:none;background:transparent;
+  color:var(--muted);border-radius:7px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;
+  transition:all .2s;
+}
+.tab-btn.active{background:var(--surface2);color:var(--text);}
+
+.auth-form{display:none;}
+.auth-form.active{display:block;}
+
+.field{margin-bottom:13px;}
+.field label{display:block;font-size:11px;color:var(--muted);margin-bottom:5px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;}
+.field input{
+  width:100%;padding:11px 13px;
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:10px;color:var(--text);
+  font-family:'DM Sans',sans-serif;font-size:15px;
+  outline:none;transition:border-color .2s;
+}
+.field input:focus{border-color:var(--accent);}
+.field input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+
+.btn-primary{
+  width:100%;padding:13px;background:var(--accent);color:#fff;
+  border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:15px;font-weight:700;
+  cursor:pointer;margin-top:6px;
+  transition:opacity .2s,transform .1s;
+}
+.btn-primary:hover{opacity:.9;}
+.btn-primary:active{transform:scale(.98);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+
+.auth-msg{margin-top:12px;font-size:13px;color:var(--red);text-align:center;min-height:18px;}
+
+/* ─── LAYOUT ───────────────────────────────── */
+#app{display:none;min-height:100dvh;}
+
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;
+  width:var(--sidebar-w);
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:24px 0;
+  display:flex;flex-direction:column;
+  z-index:100;
+  transition:transform .3s cubic-bezier(.4,0,.2,1);
+}
+.sidebar-logo{
+  font-family:'Syne',sans-serif;font-size:19px;font-weight:800;
+  color:var(--accent);padding:0 22px 22px;
+  border-bottom:1px solid var(--border);
+}
+.sidebar-logo span{font-size:21px;}
+
+.nav{flex:1;padding:14px 10px;overflow-y:auto;}
+.nav-item{
+  display:flex;align-items:center;gap:10px;
+  padding:11px 12px;border-radius:10px;
+  cursor:pointer;color:var(--muted);
+  font-size:14px;font-weight:500;
+  transition:all .15s;margin-bottom:2px;
+  user-select:none;
+}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--accent);color:#fff;}
+.nav-item .icon{font-size:17px;width:22px;text-align:center;flex-shrink:0;}
+
+.sidebar-user{
+  padding:14px 22px;border-top:1px solid var(--border);
+}
+.sidebar-user .biz-name{
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;margin-bottom:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.sidebar-user .biz-email{font-size:11px;color:var(--muted);margin-bottom:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.btn-logout{
+  background:transparent;border:1px solid var(--border);color:var(--muted);
+  padding:7px 12px;border-radius:8px;font-size:12px;cursor:pointer;
+  transition:all .15s;font-family:'DM Sans',sans-serif;width:100%;text-align:center;
+}
+.btn-logout:hover{border-color:var(--red);color:var(--red);}
+
+.main{margin-left:var(--sidebar-w);padding:28px 32px;min-height:100dvh;}
+
+.page{display:none;}
+.page.active{display:block;animation:fadeUp .22s ease;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:translateY(0);}}
+
+.page-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:22px;flex-wrap:wrap;gap:12px;
+}
+.page-title{font-size:24px;font-weight:800;letter-spacing:-.5px;}
+
+/* ─── FILTROS ───────────────────────────────── */
+.filter-bar{
+  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
+  margin-bottom:14px;
+}
+.filter-bar input[type=text],.filter-bar input[type=date],.filter-bar select{
+  padding:8px 12px;background:var(--bg);
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;
+  outline:none;transition:border-color .2s;
+}
+.filter-bar input[type=text]{min-width:180px;}
+.filter-bar input:focus,.filter-bar select:focus{border-color:var(--accent);}
+.filter-bar select option{background:var(--surface);}
+.btn-ghost{
+  padding:8px 14px;background:transparent;
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);cursor:pointer;font-size:12px;
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+
+/* ─── CARDS ───────────────────────────────── */
 .card{
-background:white;
-padding:20px;
-border-radius:12px;
-margin-bottom:15px;
-box-shadow:0 2px 10px rgba(0,0,0,.1);
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:22px;margin-bottom:18px;
 }
-input{
-width:100%;
-padding:12px;
-margin:8px 0;
-border:1px solid #ccc;
-border-radius:8px;
+.card-title{font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text);font-family:'Syne',sans-serif;}
+
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px;margin-bottom:18px;}
+.stat-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:var(--radius);padding:18px 22px;
+  position:relative;overflow:hidden;cursor:default;
+  transition:border-color .2s;
 }
-button{
-padding:12px 20px;
-border:none;
-background:#667eea;
-color:white;
-border-radius:8px;
-cursor:pointer;
-margin-top:10px;
+.stat-card:hover{border-color:var(--accent-color,var(--accent));}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--accent-color,var(--accent));}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:7px;}
+.stat-value{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;line-height:1;margin-bottom:4px;}
+.stat-sub{font-size:12px;color:var(--muted);}
+
+.balance-bar{background:var(--bg);border-radius:10px;height:7px;margin-top:10px;overflow:hidden;}
+.balance-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:10px;transition:width .6s ease;}
+
+/* ─── FORMS ───────────────────────────────── */
+.form-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.form-group input,.form-group select{
+  padding:10px 12px;background:var(--bg);
+  border:1px solid var(--border);border-radius:10px;
+  color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;
+  outline:none;transition:border-color .2s;
+  /* evita zoom en iOS al enfocar */
+  font-size:16px;
 }
-button:hover{opacity:.9}
-.grid{
-display:grid;
-grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
-gap:20px;
+.form-group input:focus,.form-group select:focus{border-color:var(--accent);}
+.form-group select option{background:var(--surface);}
+
+.btn-add{
+  padding:11px 18px;background:var(--accent);color:#fff;
+  border:none;border-radius:10px;
+  font-family:'Syne',sans-serif;font-size:14px;font-weight:700;
+  cursor:pointer;white-space:nowrap;
+  transition:opacity .2s,transform .1s;
+  align-self:flex-end;
 }
-.module{
-background:white;
-padding:30px;
-text-align:center;
-border-radius:12px;
-cursor:pointer;
-font-size:22px;
-box-shadow:0 2px 10px rgba(0,0,0,.1);
+.btn-add:hover{opacity:.9;}
+.btn-add:active{transform:scale(.97);}
+.btn-add:disabled{opacity:.5;cursor:not-allowed;}
+
+/* ─── TABLA ───────────────────────────────── */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+thead th{
+  text-align:left;padding:9px 13px;
+  font-size:11px;text-transform:uppercase;letter-spacing:.7px;
+  color:var(--muted);font-weight:600;
+  border-bottom:1px solid var(--border);
+  white-space:nowrap;
 }
-.module:hover{
-transform:translateY(-3px);
+tbody tr{border-bottom:1px solid var(--border);transition:background .1s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+tbody td{padding:11px 13px;vertical-align:middle;}
+
+/* tabla editable */
+.td-edit{display:none;}
+.row-editing .td-view{display:none;}
+.row-editing .td-edit{display:block;}
+.inline-input{
+  padding:5px 8px;background:var(--bg);border:1px solid var(--accent);
+  border-radius:6px;color:var(--text);font-size:13px;
+  font-family:'DM Sans',sans-serif;width:100%;outline:none;
 }
-.hidden{
-display:none;
+
+.badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:12px;font-weight:600;}
+.badge-green{background:rgba(78,203,113,.15);color:var(--green);}
+.badge-red{background:rgba(255,71,87,.15);color:var(--red);}
+.badge-blue{background:rgba(91,141,238,.15);color:var(--blue);}
+.badge-orange{background:rgba(255,107,43,.15);color:var(--accent);}
+
+.amount-pos{color:var(--green);font-weight:600;font-family:'Syne',sans-serif;}
+.amount-neg{color:var(--red);font-weight:600;font-family:'Syne',sans-serif;}
+
+.btn-del{
+  background:transparent;border:none;color:var(--muted);
+  cursor:pointer;font-size:15px;padding:4px 7px;
+  border-radius:6px;transition:all .15s;
 }
-.red{
-background:#e74c3c;
+.btn-del:hover{background:rgba(255,71,87,.15);color:var(--red);}
+.btn-edit-row{
+  background:transparent;border:none;color:var(--muted);
+  cursor:pointer;font-size:14px;padding:4px 7px;
+  border-radius:6px;transition:all .15s;
+}
+.btn-edit-row:hover{background:rgba(91,141,238,.15);color:var(--blue);}
+.btn-save-row{
+  background:transparent;border:none;color:var(--green);
+  cursor:pointer;font-size:14px;padding:4px 7px;
+  border-radius:6px;transition:all .15s;display:none;
+}
+.row-editing .btn-save-row{display:inline-block;}
+.row-editing .btn-edit-row{display:none;}
+
+.empty-state{text-align:center;padding:36px;color:var(--muted);font-size:14px;}
+
+/* ─── ALERTA STOCK ───────────────────────────────── */
+.alert-banner{
+  background:rgba(255,71,87,.1);border:1px solid rgba(255,71,87,.3);
+  border-radius:12px;padding:12px 16px;margin-bottom:16px;
+  font-size:13px;color:var(--red);display:none;
+}
+.stock-low td:first-child{border-left:3px solid var(--red);}
+
+/* ─── EXPORT ───────────────────────────────── */
+.export-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;}
+.btn-export{
+  padding:8px 14px;background:transparent;
+  border:1px solid var(--border);border-radius:8px;
+  color:var(--muted);cursor:pointer;font-size:12px;
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+  display:flex;align-items:center;gap:5px;
+}
+.btn-export:hover{border-color:var(--accent2);color:var(--accent2);}
+
+/* ─── RESUMEN VISUAL (período) ───────────────────────────────── */
+.period-selector{
+  display:flex;gap:6px;flex-wrap:wrap;
+}
+.period-btn{
+  padding:6px 12px;background:transparent;border:1px solid var(--border);
+  border-radius:20px;color:var(--muted);cursor:pointer;font-size:12px;
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.period-btn.active{background:var(--accent);border-color:var(--accent);color:#fff;}
+
+/* ─── PIZZA MARGEN ───────────────────────────────── */
+.pizza-card-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
+  gap:14px;margin-top:4px;
+}
+.pizza-card{
+  background:var(--bg);border:1px solid var(--border);
+  border-radius:12px;padding:16px;
+  transition:border-color .2s,transform .15s;
+}
+.pizza-card:hover{border-color:var(--accent);transform:translateY(-2px);}
+.pizza-card-name{font-family:'Syne',sans-serif;font-weight:700;font-size:15px;margin-bottom:4px;}
+.pizza-card-desc{font-size:12px;color:var(--muted);margin-bottom:10px;}
+.pizza-card-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:3px;}
+
+/* ─── RESPONSIVE ───────────────────────────────── */
+.menu-btn{
+  display:none;
+  position:fixed;top:14px;left:14px;z-index:200;
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:8px;padding:8px 10px;
+  cursor:pointer;font-size:18px;color:var(--text);
+  box-shadow:0 2px 12px rgba(0,0,0,.4);
+}
+.overlay{
+  display:none;position:fixed;inset:0;
+  background:rgba(0,0,0,.55);z-index:99;
+  backdrop-filter:blur(2px);
+}
+.overlay.show{display:block;}
+
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;padding:16px;padding-top:60px;}
+  .menu-btn{display:flex;}
+  .stat-grid{grid-template-columns:1fr 1fr;}
+  .form-row{grid-template-columns:1fr;}
+  .btn-add{width:100%;}
+  .export-row{justify-content:stretch;}
+  .btn-export{flex:1;justify-content:center;}
+  .page-header{flex-direction:column;align-items:flex-start;}
+  .filter-bar{flex-direction:column;align-items:stretch;}
+  .filter-bar input,.filter-bar select{width:100%;}
+  .auth-box{padding:30px 22px;}
+  /* inputs grandes en iOS */
+  .form-group input,.form-group select{font-size:16px!important;}
+}
+
+@media(max-width:420px){
+  .stat-grid{grid-template-columns:1fr;}
+  .pizza-card-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
 <body>
 
-<div class="wrap">
+<!-- ─── AUTH ─────────────────────────────── -->
+<div id="authScreen">
+  <div class="auth-box">
+    <div class="auth-logo">🍕 Pizzería Pro</div>
+    <div class="auth-sub">Tu negocio bajo control, sin complicaciones</div>
 
-<div id="auth" class="card">
-<h1>🍕 Pizzería Pro</h1>
+    <div class="tabs" role="tablist">
+      <button type="button" role="tab" aria-selected="true" class="tab-btn active" onclick="switchTab('login')">Iniciar sesión</button>
+      <button type="button" role="tab" aria-selected="false" class="tab-btn" onclick="switchTab('register')">Crear cuenta</button>
+    </div>
 
-<h3>Crear cuenta</h3>
-<input id="businessName" placeholder="Nombre negocio">
-<input id="registerEmail" placeholder="Email">
-<input id="registerPassword" type="password" placeholder="Contraseña">
-<button onclick="register()">Crear cuenta</button>
+    <div id="loginForm" class="auth-form active">
+      <div class="field">
+        <label for="loginEmail">Email</label>
+        <input id="loginEmail" type="email" autocomplete="email" placeholder="tu@email.com" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <div class="field">
+        <label for="loginPassword">Contraseña</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button id="btnLogin" type="button" class="btn-primary" onclick="login()">Entrar →</button>
+    </div>
 
-<hr>
+    <div id="registerForm" class="auth-form">
+      <div class="field">
+        <label for="businessName">Nombre del negocio</label>
+        <input id="businessName" autocomplete="organization" placeholder="Mi Pizzería">
+      </div>
+      <div class="field">
+        <label for="registerEmail">Email</label>
+        <input id="registerEmail" type="email" autocomplete="email" placeholder="tu@email.com">
+      </div>
+      <div class="field">
+        <label for="registerPassword">Contraseña</label>
+        <input id="registerPassword" type="password" autocomplete="new-password" placeholder="•••••••• (mín. 6)">
+      </div>
+      <button id="btnRegister" type="button" class="btn-primary" onclick="register()">Crear cuenta →</button>
+    </div>
 
-<h3>Iniciar sesión</h3>
-<input id="loginEmail" placeholder="Email">
-<input id="loginPassword" type="password" placeholder="Contraseña">
-<button onclick="login()">Entrar</button>
-
-<p id="msg"></p>
+    <div class="auth-msg" id="authMsg" role="alert"></div>
+  </div>
 </div>
 
+<!-- ─── APP ─────────────────────────────── -->
+<button type="button" class="menu-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Abrir menú">☰</button>
+<div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+<div id="toastContainer" aria-live="polite"></div>
 
-<div id="dashboard" class="hidden">
+<div id="app">
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Menú principal">
+    <div class="sidebar-logo"><span>🍕</span> Pizzería Pro</div>
+    <nav class="nav">
+      <div class="nav-item active" onclick="goTo('dashboard')" data-page="dashboard" tabindex="0" role="button" onkeydown="if(event.key==='Enter')goTo('dashboard')">
+        <span class="icon">📊</span> Resumen
+      </div>
+      <div class="nav-item" onclick="goTo('ingresos')" data-page="ingresos" tabindex="0" role="button" onkeydown="if(event.key==='Enter')goTo('ingresos')">
+        <span class="icon">💰</span> Ingresos
+      </div>
+      <div class="nav-item" onclick="goTo('gastos')" data-page="gastos" tabindex="0" role="button" onkeydown="if(event.key==='Enter')goTo('gastos')">
+        <span class="icon">💸</span> Gastos
+      </div>
+      <div class="nav-item" onclick="goTo('stock')" data-page="stock" tabindex="0" role="button" onkeydown="if(event.key==='Enter')goTo('stock')">
+        <span class="icon">📦</span> Stock
+      </div>
+      <div class="nav-item" onclick="goTo('pizzas')" data-page="pizzas" tabindex="0" role="button" onkeydown="if(event.key==='Enter')goTo('pizzas')">
+        <span class="icon">🍕</span> Mis Pizzas
+      </div>
+    </nav>
+    <div class="sidebar-user">
+      <div class="biz-name" id="bizName">—</div>
+      <div class="biz-email" id="bizEmail">—</div>
+      <button type="button" class="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </aside>
 
-<div class="card">
-<h2>Bienvenido</h2>
-<p><b>Negocio:</b> <span id="biz"></span></p>
-<p><b>Email:</b> <span id="mail"></span></p>
-<button class="red" onclick="logout()">Cerrar sesión</button>
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div id="pageDashboard" class="page active">
+      <div class="page-header">
+        <div class="page-title">📊 Resumen</div>
+        <div class="period-selector" id="dashPeriod">
+          <button class="period-btn active" data-p="todo" onclick="setPeriod(this,'todo')">Todo</button>
+          <button class="period-btn" data-p="mes" onclick="setPeriod(this,'mes')">Este mes</button>
+          <button class="period-btn" data-p="semana" onclick="setPeriod(this,'semana')">Esta semana</button>
+        </div>
+      </div>
+
+      <div class="stat-grid">
+        <div class="stat-card" style="--accent-color:var(--green)">
+          <div class="stat-label">Total ingresos</div>
+          <div class="stat-value amount-pos" id="statIngresos">$0</div>
+          <div class="stat-sub" id="statIngresosCount">0 registros</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--red)">
+          <div class="stat-label">Total gastos</div>
+          <div class="stat-value amount-neg" id="statGastos">$0</div>
+          <div class="stat-sub" id="statGastosCount">0 registros</div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--blue)">
+          <div class="stat-label">Balance neto</div>
+          <div class="stat-value" id="statBalance">$0</div>
+          <div class="stat-sub">ingresos − gastos</div>
+          <div class="balance-bar"><div class="balance-fill" id="balanceFill" style="width:50%"></div></div>
+        </div>
+        <div class="stat-card" style="--accent-color:var(--accent)">
+          <div class="stat-label">Ítems en stock</div>
+          <div class="stat-value" id="statStock">0</div>
+          <div class="stat-sub" id="statStockAlerta" style="color:var(--red)"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div class="card-title" style="margin:0">Últimos movimientos</div>
+          <div class="export-row" style="margin:0">
+            <button class="btn-export" onclick="exportarCSV('todos')">⬇ CSV</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Fecha</th><th>Descripción</th><th>Tipo</th><th>Monto</th></tr></thead>
+            <tbody id="recentMovs"><tr><td colspan="4" class="empty-state">Cargando…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- INGRESOS -->
+    <div id="pageIngresos" class="page">
+      <div class="page-header">
+        <div class="page-title">💰 Ingresos</div>
+        <div class="export-row">
+          <button class="btn-export" onclick="exportarCSV('ingresos')">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="iDesc">Descripción</label>
+            <input id="iDesc" placeholder="Ej: Venta del día..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="iMonto">Monto ($)</label>
+            <input id="iMonto" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label for="iCat">Categoría</label>
+            <select id="iCat">
+              <option>Venta mostrador</option>
+              <option>Delivery</option>
+              <option>Catering</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="iFecha">Fecha</label>
+            <input id="iFecha" type="date">
+          </div>
+          <button id="btnAddIngreso" type="button" class="btn-add" onclick="guardarIngreso()">+ Agregar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <input type="text" id="filtroIDesc" placeholder="🔍 Buscar..." oninput="filtrarTabla('ingresos')">
+          <select id="filtroICat" onchange="filtrarTabla('ingresos')">
+            <option value="">Todas las categorías</option>
+            <option>Venta mostrador</option>
+            <option>Delivery</option>
+            <option>Catering</option>
+            <option>Otro</option>
+          </select>
+          <input type="date" id="filtroIDesde" onchange="filtrarTabla('ingresos')">
+          <input type="date" id="filtroIHasta" onchange="filtrarTabla('ingresos')">
+          <button class="btn-ghost" onclick="limpiarFiltros('ingresos')">✕ Limpiar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th onclick="sortTabla('ingresos','fecha')" style="cursor:pointer">Fecha ↕</th>
+              <th>Descripción</th>
+              <th onclick="sortTabla('ingresos','categoria')" style="cursor:pointer">Categoría ↕</th>
+              <th onclick="sortTabla('ingresos','monto')" style="cursor:pointer">Monto ↕</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="tablaIngresos"><tr><td colspan="5" class="empty-state">Sin registros aún</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- GASTOS -->
+    <div id="pageGastos" class="page">
+      <div class="page-header">
+        <div class="page-title">💸 Gastos</div>
+        <div class="export-row">
+          <button class="btn-export" onclick="exportarCSV('gastos')">⬇ CSV</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="gDesc">Descripción</label>
+            <input id="gDesc" placeholder="Ej: harina, gas..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="gMonto">Monto ($)</label>
+            <input id="gMonto" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label for="gCat">Categoría</label>
+            <select id="gCat">
+              <option>Ingredientes</option>
+              <option>Servicios (luz/gas)</option>
+              <option>Packaging</option>
+              <option>Sueldos</option>
+              <option>Alquiler</option>
+              <option>Mantenimiento</option>
+              <option>Otro</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="gFecha">Fecha</label>
+            <input id="gFecha" type="date">
+          </div>
+          <button id="btnAddGasto" type="button" class="btn-add" onclick="guardarGasto()">+ Agregar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="filter-bar">
+          <input type="text" id="filtroGDesc" placeholder="🔍 Buscar..." oninput="filtrarTabla('gastos')">
+          <select id="filtroGCat" onchange="filtrarTabla('gastos')">
+            <option value="">Todas las categorías</option>
+            <option>Ingredientes</option>
+            <option>Servicios (luz/gas)</option>
+            <option>Packaging</option>
+            <option>Sueldos</option>
+            <option>Alquiler</option>
+            <option>Mantenimiento</option>
+            <option>Otro</option>
+          </select>
+          <input type="date" id="filtroGDesde" onchange="filtrarTabla('gastos')">
+          <input type="date" id="filtroGHasta" onchange="filtrarTabla('gastos')">
+          <button class="btn-ghost" onclick="limpiarFiltros('gastos')">✕ Limpiar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr>
+              <th onclick="sortTabla('gastos','fecha')" style="cursor:pointer">Fecha ↕</th>
+              <th>Descripción</th>
+              <th onclick="sortTabla('gastos','categoria')" style="cursor:pointer">Categoría ↕</th>
+              <th onclick="sortTabla('gastos','monto')" style="cursor:pointer">Monto ↕</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="tablaGastos"><tr><td colspan="5" class="empty-state">Sin registros aún</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- STOCK -->
+    <div id="pageStock" class="page">
+      <div class="page-header">
+        <div class="page-title">📦 Stock</div>
+        <div class="export-row">
+          <button class="btn-export" onclick="exportarCSV('stock')">⬇ CSV</button>
+        </div>
+      </div>
+      <div id="stockAlerta" class="alert-banner" role="alert">⚠️ Hay ítems con stock bajo. Revisá la lista.</div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="sNom">Producto</label>
+            <input id="sNom" placeholder="Ej: harina, mozzarella..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="sCant">Cantidad</label>
+            <input id="sCant" type="number" placeholder="0" min="0" step="any" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label for="sUnidad">Unidad</label>
+            <select id="sUnidad">
+              <option>kg</option>
+              <option>g</option>
+              <option>litros</option>
+              <option>unidades</option>
+              <option>bolsas</option>
+              <option>cajas</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label for="sMin">Alerta mínima</label>
+            <input id="sMin" type="number" placeholder="0" min="0" step="any" inputmode="decimal">
+          </div>
+          <button id="btnAddStock" type="button" class="btn-add" onclick="guardarStock()">+ Agregar</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Producto</th><th>Cantidad</th><th>Unidad</th><th>Estado</th><th></th></tr></thead>
+            <tbody id="tablaStock"><tr><td colspan="5" class="empty-state">Sin stock registrado</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- PIZZAS -->
+    <div id="pagePizzas" class="page">
+      <div class="page-header">
+        <div class="page-title">🍕 Mis Pizzas</div>
+      </div>
+      <div class="card">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="pNom">Nombre</label>
+            <input id="pNom" placeholder="Ej: Napolitana, Fugazzeta..." autocomplete="off">
+          </div>
+          <div class="form-group">
+            <label for="pPrecio">Precio venta ($)</label>
+            <input id="pPrecio" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label for="pCosto">Costo estimado ($)</label>
+            <input id="pCosto" type="number" placeholder="0.00" min="0" step="0.01" inputmode="decimal">
+          </div>
+          <div class="form-group">
+            <label for="pDesc">Descripción / ingredientes</label>
+            <input id="pDesc" placeholder="Tomate, mozzarella...">
+          </div>
+          <button id="btnAddPizza" type="button" class="btn-add" onclick="guardarPizza()">+ Agregar</button>
+        </div>
+      </div>
+
+      <!-- Vista tarjetas de pizzas -->
+      <div class="card">
+        <div class="card-title">Carta visual</div>
+        <div id="pizzaCards" class="pizza-card-grid"><p class="empty-state">Sin pizzas cargadas</p></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Tabla de márgenes</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Pizza</th><th>Precio</th><th>Costo</th><th>Ganancia</th><th>Margen</th><th></th></tr></thead>
+            <tbody id="tablaPizzas"><tr><td colspan="6" class="empty-state">Sin pizzas cargadas</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
-<div class="grid">
-<div class="module" onclick="abrir('movimientos')">📋 Movimientos</div>
-<div class="module" onclick="abrir('pizzas')">🍕 Pizzas</div>
-<div class="module" onclick="abrir('stock')">📦 Stock</div>
-<div class="module" onclick="abrir('ventas')">💰 Ventas</div>
-</div>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+import { getDatabase, ref as dbRef, push, set, remove, update, get } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js";
 
-<div id="contenido" class="card hidden"></div>
-
-</div>
-
-</div>
-
-
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-
-<script>
+/* ───────────────────────────────────────────────────
+   PIZZERÍA PRO v2 – Benjamín Novillo Linares
+   Mejoras sobre v1:
+   ✅ Toast en lugar de alert() bloqueante
+   ✅ Edición inline de registros (sin borrar y recargar)
+   ✅ Filtros de búsqueda + ordenamiento en tablas
+   ✅ Exportar CSV (ingresos, gastos, stock, todos)
+   ✅ Selector de período en dashboard (todo/mes/semana)
+   ✅ Tarjetas visuales de pizzas
+   ✅ inputmode="decimal" + font-size 16px → sin zoom iOS
+   ✅ Enter para hacer login
+   ✅ Botones con loading state durante guardado
+   ✅ Manejo de error de red más robusto
+   ✅ Accesibilidad: roles ARIA, tabindex, aria-live
+   ✅ Safe area iOS (padding-top 60px en mobile)
+   ✅ Responsive mejorado para pantallas muy chicas
+   ─────────────────────────────────────────────────── */
 
 const firebaseConfig = {
   apiKey: "AIzaSyDwUirH-Ylk5WkTPCpPAMuU5l4bWLDljVo",
@@ -128,157 +781,609 @@ const firebaseConfig = {
   appId: "1:820646614801:web:e03f1a15e696d95bbe5eb0"
 };
 
-firebase.initializeApp(firebaseConfig);
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getDatabase(app);
 
-const auth = firebase.auth();
-const db = firebase.database();
+// Cache local de datos
+let _cache = { ingresos:[], gastos:[], stock:[], pizzas:[] };
+// Estado de sort
+let _sort = { ingresos:{col:'fecha',asc:false}, gastos:{col:'fecha',asc:false} };
+// Período activo en dashboard
+let _periodo = 'todo';
 
-function msg(t){
-document.getElementById("msg").innerText=t;
+// ─── HELPERS ─────────────────────────────────────────
+function uid() { return auth.currentUser ? auth.currentUser.uid : null; }
+
+function fmt(n) {
+  return "$" + parseFloat(n||0).toLocaleString("es-AR",{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
-function register(){
-let b=document.getElementById("businessName").value;
-let e=document.getElementById("registerEmail").value;
-let p=document.getElementById("registerPassword").value;
+function fmtDate(iso) {
+  if(!iso) return "—";
+  const [y,m,d] = iso.split("-");
+  return `${d}/${m}/${y}`;
+}
 
-auth.createUserWithEmailAndPassword(e,p)
-.then(r=>{
-db.ref("users/"+r.user.uid+"/profile").set({
-business:b,
-email:e
+function today() { return new Date().toISOString().split("T")[0]; }
+
+function escapeHtml(s) {
+  if(s==null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// ─── TOAST (reemplaza alert) ──────────────────────────────
+function toast(msg, type="info", dur=3000) {
+  const icons = {success:"✅", error:"❌", info:"ℹ️"};
+  const c = document.getElementById("toastContainer");
+  const t = document.createElement("div");
+  t.className = `toast ${type}`;
+  t.innerHTML = `<span>${icons[type]||""}</span><span>${escapeHtml(msg)}</span>`;
+  c.appendChild(t);
+  setTimeout(() => { t.style.opacity="0"; t.style.transition="opacity .3s"; setTimeout(()=>t.remove(),300); }, dur);
+}
+
+// ─── LOADING STATE en botones ─────────────────────────────
+function setBtnLoading(id, loading, originalText) {
+  const btn = document.getElementById(id);
+  if(!btn) return;
+  btn.disabled = loading;
+  if(loading) { btn.dataset.orig = btn.innerText; btn.innerText = "Guardando…"; }
+  else btn.innerText = originalText || btn.dataset.orig || btn.innerText;
+}
+
+// ─── PERÍODO ─────────────────────────────────────────
+function setPeriod(btn, p) {
+  _periodo = p;
+  document.querySelectorAll(".period-btn").forEach(b => b.classList.toggle("active", b===btn));
+  loadDashboard();
+}
+
+function inPeriod(fecha) {
+  if(_periodo === 'todo') return true;
+  const now = new Date();
+  const f   = new Date(fecha + "T00:00:00");
+  if(_periodo === 'mes') {
+    return f.getMonth()===now.getMonth() && f.getFullYear()===now.getFullYear();
+  }
+  if(_periodo === 'semana') {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0,0,0,0);
+    return f >= startOfWeek;
+  }
+  return true;
+}
+
+// ─── AUTH ─────────────────────────────────────────
+function authErrorMessage(code) {
+  const m = {
+    "auth/email-already-in-use":"Ese email ya está registrado.",
+    "auth/invalid-email":"El email no es válido.",
+    "auth/weak-password":"Contraseña débil (mín. 6 caracteres).",
+    "auth/user-not-found":"No hay cuenta con ese email.",
+    "auth/wrong-password":"Contraseña incorrecta.",
+    "auth/invalid-credential":"Email o contraseña incorrectos.",
+    "auth/too-many-requests":"Demasiados intentos. Probá más tarde.",
+    "auth/network-request-failed":"Sin conexión. Revisá tu red."
+  };
+  return m[code] || null;
+}
+
+function switchTab(tab) {
+  document.querySelectorAll(".tab-btn").forEach((b,i) => {
+    const on = (tab==="login"&&i===0)||(tab==="register"&&i===1);
+    b.classList.toggle("active", on);
+    b.setAttribute("aria-selected", on?"true":"false");
+  });
+  document.getElementById("loginForm").classList.toggle("active", tab==="login");
+  document.getElementById("registerForm").classList.toggle("active", tab==="register");
+  document.getElementById("authMsg").innerText = "";
+}
+
+function showMsg(id, txt) {
+  const el = document.getElementById(id);
+  el.innerText = txt;
+  el.style.color = "var(--red)";
+  setTimeout(() => el.innerText="", 5000);
+}
+
+function login() {
+  const e = document.getElementById("loginEmail").value.trim();
+  const p = document.getElementById("loginPassword").value;
+  if(!e||!p){ showMsg("authMsg","Ingresá email y contraseña"); return; }
+  setBtnLoading("btnLogin", true);
+  signInWithEmailAndPassword(auth, e, p)
+    .catch(err => { showMsg("authMsg", authErrorMessage(err.code)||err.message); setBtnLoading("btnLogin",false,"Entrar →"); });
+}
+
+function register() {
+  const b = document.getElementById("businessName").value.trim();
+  const e = document.getElementById("registerEmail").value.trim();
+  const p = document.getElementById("registerPassword").value;
+  if(!b||!e||!p){ showMsg("authMsg","Completá todos los campos"); return; }
+  if(p.length<6){ showMsg("authMsg","La contraseña debe tener al menos 6 caracteres"); return; }
+  setBtnLoading("btnRegister", true);
+  createUserWithEmailAndPassword(auth, e, p)
+    .then(r => set(dbRef(db,"users/"+r.user.uid+"/profile"),{business:b,email:e}))
+    .catch(err => { showMsg("authMsg", authErrorMessage(err.code)||err.message); setBtnLoading("btnRegister",false,"Crear cuenta →"); });
+}
+
+function logout() { signOut(auth); }
+
+onAuthStateChanged(auth, user => {
+  if(user) {
+    document.getElementById("authScreen").style.display = "none";
+    document.getElementById("app").style.display = "block";
+    get(dbRef(db,"users/"+user.uid+"/profile")).then(s => {
+      const d = s.val()||{};
+      document.getElementById("bizName").innerText  = d.business || "Mi pizzería";
+      document.getElementById("bizEmail").innerText = d.email    || user.email;
+    });
+    setDefaultDates();
+    goTo("dashboard");
+  } else {
+    document.getElementById("authScreen").style.display = "flex";
+    document.getElementById("app").style.display = "none";
+    setBtnLoading("btnLogin",false,"Entrar →");
+    setBtnLoading("btnRegister",false,"Crear cuenta →");
+  }
 });
-msg("Cuenta creada");
-})
-.catch(err=>msg(err.message));
+
+// ─── NAV ─────────────────────────────────────────
+function goTo(page) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n => {
+    n.classList.toggle("active", n.dataset.page===page);
+  });
+  const el = document.getElementById("page"+page.charAt(0).toUpperCase()+page.slice(1));
+  if(el) el.classList.add("active");
+  document.getElementById("sidebar").classList.remove("open");
+  document.getElementById("overlay").classList.remove("show");
+
+  if(page==="dashboard") loadDashboard();
+  if(page==="ingresos")  loadTabla("ingresos");
+  if(page==="gastos")    loadTabla("gastos");
+  if(page==="stock")     loadStock();
+  if(page==="pizzas")    loadPizzas();
 }
 
-function login(){
-let e=document.getElementById("loginEmail").value;
-let p=document.getElementById("loginPassword").value;
-
-auth.signInWithEmailAndPassword(e,p)
-.catch(err=>msg(err.message));
+function toggleMenu() {
+  document.getElementById("sidebar").classList.toggle("open");
+  document.getElementById("overlay").classList.toggle("show");
 }
 
-function logout(){
-auth.signOut();
+function setDefaultDates() {
+  const t = today();
+  ["iFecha","gFecha"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = t;
+  });
 }
 
-auth.onAuthStateChanged(user=>{
-if(user){
-document.getElementById("auth").classList.add("hidden");
-document.getElementById("dashboard").classList.remove("hidden");
+// ─── DASHBOARD ─────────────────────────────────────────
+function loadDashboard() {
+  Promise.all([
+    get(dbRef(db,"users/"+uid()+"/ingresos")),
+    get(dbRef(db,"users/"+uid()+"/gastos")),
+    get(dbRef(db,"users/"+uid()+"/stock")),
+  ]).then(([iSnap,gSnap,sSnap]) => {
 
-db.ref("users/"+user.uid+"/profile").once("value")
-.then(s=>{
-let d=s.val();
-document.getElementById("biz").innerText=d.business;
-document.getElementById("mail").innerText=d.email;
-});
-}else{
-document.getElementById("auth").classList.remove("hidden");
-document.getElementById("dashboard").classList.add("hidden");
-}
-});
+    let totalI=0, countI=0, movs=[];
+    iSnap.forEach(x => {
+      const v = x.val();
+      if(inPeriod(v.fecha)) { totalI+=parseFloat(v.monto||0); countI++; }
+      movs.push({...v, tipo:"ingreso", key:x.key});
+    });
 
+    let totalG=0, countG=0;
+    gSnap.forEach(x => {
+      const v = x.val();
+      if(inPeriod(v.fecha)) { totalG+=parseFloat(v.monto||0); countG++; }
+      movs.push({...v, tipo:"gasto", key:x.key});
+    });
 
-function abrir(tipo){
-let c=document.getElementById("contenido");
-c.classList.remove("hidden");
+    const balance = totalI - totalG;
 
-if(tipo==="movimientos"){
-c.innerHTML=`
-<h2>📋 Movimientos</h2>
-<input id="mDesc" placeholder="Descripción">
-<input id="mMonto" placeholder="Monto">
-<button onclick="guardarMovimiento()">Guardar</button>
-<div id="lista"></div>
-`;
-cargarLista("movimientos");
-}
+    document.getElementById("statIngresos").innerText = fmt(totalI);
+    document.getElementById("statIngresosCount").innerText = countI+" registro"+(countI!==1?"s":"");
+    document.getElementById("statGastos").innerText = fmt(totalG);
+    document.getElementById("statGastosCount").innerText = countG+" registro"+(countG!==1?"s":"");
 
-if(tipo==="pizzas"){
-c.innerHTML=`
-<h2>🍕 Pizzas</h2>
-<input id="pNom" placeholder="Nombre">
-<input id="pPrecio" placeholder="Precio">
-<button onclick="guardarPizza()">Guardar</button>
-<div id="lista"></div>
-`;
-cargarLista("pizzas");
-}
+    const balEl = document.getElementById("statBalance");
+    balEl.innerText = fmt(balance);
+    balEl.style.color = balance>=0 ? "var(--green)" : "var(--red)";
 
-if(tipo==="stock"){
-c.innerHTML=`
-<h2>📦 Stock</h2>
-<input id="sNom" placeholder="Producto">
-<input id="sCant" placeholder="Cantidad">
-<button onclick="guardarStock()">Guardar</button>
-<div id="lista"></div>
-`;
-cargarLista("stock");
-}
+    const totalMov = totalI + totalG;
+    const pct = totalMov>0 ? Math.min(100,(totalI/totalMov)*100) : (totalI>0?100:0);
+    document.getElementById("balanceFill").style.width = pct+"%";
 
-if(tipo==="ventas"){
-c.innerHTML=`
-<h2>💰 Ventas</h2>
-<input id="vCli" placeholder="Cliente">
-<input id="vTot" placeholder="Total">
-<button onclick="guardarVenta()">Guardar</button>
-<div id="lista"></div>
-`;
-cargarLista("ventas");
-}
+    let stockCount=0, stockAlerta=0;
+    sSnap.forEach(x => {
+      const v=x.val(); stockCount++;
+      if(parseFloat(v.cantidad||0)<=parseFloat(v.minimo||0)) stockAlerta++;
+    });
+    document.getElementById("statStock").innerText = stockCount;
+    document.getElementById("statStockAlerta").innerText = stockAlerta>0 ? `⚠️ ${stockAlerta} con stock bajo` : "";
+
+    movs.sort((a,b)=>(b.fecha||"").localeCompare(a.fecha||""));
+    const recent = movs.slice(0,10);
+    const tbody = document.getElementById("recentMovs");
+    if(!recent.length){ tbody.innerHTML='<tr><td colspan="4" class="empty-state">Sin movimientos todavía</td></tr>'; return; }
+    tbody.innerHTML = recent.map(m=>`
+      <tr>
+        <td>${fmtDate(m.fecha)}</td>
+        <td>${escapeHtml(m.descripcion||m.desc||"—")}</td>
+        <td><span class="badge ${m.tipo==="ingreso"?"badge-green":"badge-red"}">${m.tipo==="ingreso"?"Ingreso":"Gasto"}</span></td>
+        <td class="${m.tipo==="ingreso"?"amount-pos":"amount-neg"}">${m.tipo==="ingreso"?"+":"-"}${fmt(m.monto)}</td>
+      </tr>
+    `).join("");
+  }).catch(() => {
+    document.getElementById("recentMovs").innerHTML=
+      '<tr><td colspan="4" class="empty-state">No se pudo cargar. Revisá la conexión.</td></tr>';
+  });
 }
 
-function uid(){
-return auth.currentUser.uid;
+// ─── INGRESOS ─────────────────────────────────────────
+function guardarIngreso() {
+  const desc  = document.getElementById("iDesc").value.trim();
+  const monto = document.getElementById("iMonto").value;
+  const cat   = document.getElementById("iCat").value;
+  const fecha = document.getElementById("iFecha").value || today();
+  if(!desc||monto===""){ toast("Completá descripción y monto","error"); return; }
+  const m = parseFloat(monto);
+  if(!Number.isFinite(m)||m<0){ toast("Ingresá un monto válido","error"); return; }
+  setBtnLoading("btnAddIngreso",true);
+  push(dbRef(db,"users/"+uid()+"/ingresos"),{descripcion:desc,monto:m,categoria:cat,fecha})
+    .then(()=>{
+      document.getElementById("iDesc").value="";
+      document.getElementById("iMonto").value="";
+      toast("Ingreso guardado ✓","success");
+      loadTabla("ingresos"); loadDashboard();
+    })
+    .catch(()=> toast("No se pudo guardar. Revisá la conexión.","error"))
+    .finally(()=> setBtnLoading("btnAddIngreso",false,"+ Agregar"));
 }
 
-function guardarMovimiento(){
-db.ref("users/"+uid()+"/movimientos").push({
-descripcion:document.getElementById("mDesc").value,
-monto:document.getElementById("mMonto").value
-});
-abrir("movimientos");
+// ─── GASTOS ─────────────────────────────────────────
+function guardarGasto() {
+  const desc  = document.getElementById("gDesc").value.trim();
+  const monto = document.getElementById("gMonto").value;
+  const cat   = document.getElementById("gCat").value;
+  const fecha = document.getElementById("gFecha").value || today();
+  if(!desc||monto===""){ toast("Completá descripción y monto","error"); return; }
+  const m = parseFloat(monto);
+  if(!Number.isFinite(m)||m<0){ toast("Ingresá un monto válido","error"); return; }
+  setBtnLoading("btnAddGasto",true);
+  push(dbRef(db,"users/"+uid()+"/gastos"),{descripcion:desc,monto:m,categoria:cat,fecha})
+    .then(()=>{
+      document.getElementById("gDesc").value="";
+      document.getElementById("gMonto").value="";
+      toast("Gasto guardado ✓","success");
+      loadTabla("gastos"); loadDashboard();
+    })
+    .catch(()=> toast("No se pudo guardar. Revisá la conexión.","error"))
+    .finally(()=> setBtnLoading("btnAddGasto",false,"+ Agregar"));
 }
 
-function guardarPizza(){
-db.ref("users/"+uid()+"/pizzas").push({
-nombre:document.getElementById("pNom").value,
-precio:document.getElementById("pPrecio").value
-});
-abrir("pizzas");
+// ─── TABLA GENÉRICA ─────────────────────────────────────────
+function loadTabla(tipo) {
+  const tbodyId = tipo==="ingresos" ? "tablaIngresos" : "tablaGastos";
+  const isIng   = tipo==="ingresos";
+  get(dbRef(db,"users/"+uid()+"/"+tipo)).then(snap => {
+    const rows=[];
+    snap.forEach(x => rows.push({...x.val(),key:x.key}));
+    _cache[tipo] = rows;
+    renderTabla(tipo, rows);
+  });
 }
 
-function guardarStock(){
-db.ref("users/"+uid()+"/stock").push({
-producto:document.getElementById("sNom").value,
-cantidad:document.getElementById("sCant").value
-});
-abrir("stock");
+function renderTabla(tipo, rows) {
+  const tbodyId = tipo==="ingresos" ? "tablaIngresos" : "tablaGastos";
+  const isIng   = tipo==="ingresos";
+  const s = _sort[tipo];
+  const sorted = [...rows].sort((a,b) => {
+    let va=a[s.col]||"", vb=b[s.col]||"";
+    if(s.col==="monto"){ va=parseFloat(va); vb=parseFloat(vb); }
+    if(va<vb) return s.asc?-1:1;
+    if(va>vb) return s.asc?1:-1;
+    return 0;
+  });
+
+  const tbody = document.getElementById(tbodyId);
+  if(!sorted.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-state">Sin registros aún</td></tr>'; return; }
+  tbody.innerHTML = sorted.map(r=>`
+    <tr id="row-${tipo}-${r.key}">
+      <td>
+        <span class="td-view">${fmtDate(r.fecha)}</span>
+        <input class="td-edit inline-input" type="date" value="${r.fecha||''}" style="width:140px">
+      </td>
+      <td>
+        <span class="td-view">${escapeHtml(r.descripcion||"—")}</span>
+        <input class="td-edit inline-input" type="text" value="${escapeHtml(r.descripcion||'')}" style="width:100%">
+      </td>
+      <td><span class="badge ${isIng?"badge-green":"badge-orange"}">${escapeHtml(r.categoria||"—")}</span></td>
+      <td class="${isIng?"amount-pos":"amount-neg"}">
+        <span class="td-view">${isIng?"+":"-"}${fmt(r.monto)}</span>
+        <input class="td-edit inline-input" type="number" value="${r.monto||0}" min="0" step="0.01" style="width:100px">
+      </td>
+      <td style="white-space:nowrap">
+        <button type="button" class="btn-edit-row" onclick="toggleEdit('${tipo}','${r.key}')" title="Editar">✏️</button>
+        <button type="button" class="btn-save-row" onclick="guardarEdit('${tipo}','${r.key}')" title="Guardar">💾</button>
+        <button type="button" class="btn-del" onclick="eliminar('${tipo}','${r.key}','${tbodyId}')" aria-label="Eliminar">✕</button>
+      </td>
+    </tr>
+  `).join("");
 }
 
-function guardarVenta(){
-db.ref("users/"+uid()+"/ventas").push({
-cliente:document.getElementById("vCli").value,
-total:document.getElementById("vTot").value
-});
-abrir("ventas");
+function sortTabla(tipo, col) {
+  const s = _sort[tipo];
+  s.asc = s.col===col ? !s.asc : false;
+  s.col = col;
+  const rows = filteredRows(tipo);
+  renderTabla(tipo, rows);
 }
 
-function cargarLista(tipo){
-db.ref("users/"+uid()+"/"+tipo).once("value")
-.then(s=>{
-let html="";
-s.forEach(x=>{
-html += "<div class='card'>"+JSON.stringify(x.val())+"</div>";
-});
-document.getElementById("lista").innerHTML=html || "Sin datos";
-});
+function filtrarTabla(tipo) {
+  renderTabla(tipo, filteredRows(tipo));
 }
 
+function filteredRows(tipo) {
+  const isIng = tipo==="ingresos";
+  const descId  = isIng ? "filtroIDesc"  : "filtroGDesc";
+  const catId   = isIng ? "filtroICat"   : "filtroGCat";
+  const desdeId = isIng ? "filtroIDesde" : "filtroGDesde";
+  const hastaId = isIng ? "filtroIHasta" : "filtroGHasta";
+  const qDesc  = (document.getElementById(descId)?.value||"").toLowerCase();
+  const qCat   =  document.getElementById(catId)?.value||"";
+  const qDesde =  document.getElementById(desdeId)?.value||"";
+  const qHasta =  document.getElementById(hastaId)?.value||"";
+  return (_cache[tipo]||[]).filter(r => {
+    if(qDesc && !(r.descripcion||"").toLowerCase().includes(qDesc)) return false;
+    if(qCat  && r.categoria !== qCat) return false;
+    if(qDesde && (r.fecha||"") < qDesde) return false;
+    if(qHasta && (r.fecha||"") > qHasta) return false;
+    return true;
+  });
+}
+
+function limpiarFiltros(tipo) {
+  const isIng = tipo==="ingresos";
+  ["filtroIDesc","filtroICat","filtroIDesde","filtroIHasta",
+   "filtroGDesc","filtroGCat","filtroGDesde","filtroGHasta"].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value="";
+  });
+  loadTabla(tipo);
+}
+
+// ─── EDICIÓN INLINE ─────────────────────────────────────────
+function toggleEdit(tipo, key) {
+  const row = document.getElementById(`row-${tipo}-${key}`);
+  if(row) row.classList.add("row-editing");
+}
+
+function guardarEdit(tipo, key) {
+  const row = document.getElementById(`row-${tipo}-${key}`);
+  if(!row) return;
+  const inputs = row.querySelectorAll(".td-edit.inline-input");
+  const fecha  = inputs[0].value || today();
+  const desc   = inputs[1].value.trim();
+  const monto  = parseFloat(inputs[2].value);
+  if(!desc){ toast("La descripción no puede estar vacía","error"); return; }
+  if(!Number.isFinite(monto)||monto<0){ toast("Monto inválido","error"); return; }
+  update(dbRef(db,"users/"+uid()+"/"+tipo+"/"+key),{descripcion:desc,monto,fecha})
+    .then(() => { toast("Registro actualizado","success"); loadTabla(tipo); loadDashboard(); })
+    .catch(() => toast("No se pudo actualizar","error"));
+}
+
+// ─── STOCK ─────────────────────────────────────────
+function guardarStock() {
+  const nom  = document.getElementById("sNom").value.trim();
+  const cant = document.getElementById("sCant").value;
+  const unid = document.getElementById("sUnidad").value;
+  const min  = document.getElementById("sMin").value||0;
+  if(!nom||cant===""){ toast("Completá producto y cantidad","error"); return; }
+  const c  = parseFloat(cant);
+  const mn = parseFloat(min);
+  if(!Number.isFinite(c)||c<0){ toast("Cantidad inválida","error"); return; }
+  if(!Number.isFinite(mn)||mn<0){ toast("Mínimo inválido","error"); return; }
+  setBtnLoading("btnAddStock",true);
+  push(dbRef(db,"users/"+uid()+"/stock"),{producto:nom,cantidad:c,unidad:unid,minimo:mn})
+    .then(()=>{
+      document.getElementById("sNom").value="";
+      document.getElementById("sCant").value="";
+      toast("Stock guardado ✓","success");
+      loadStock(); loadDashboard();
+    })
+    .catch(()=> toast("No se pudo guardar","error"))
+    .finally(()=> setBtnLoading("btnAddStock",false,"+ Agregar"));
+}
+
+function loadStock() {
+  get(dbRef(db,"users/"+uid()+"/stock")).then(snap => {
+    const rows=[];
+    snap.forEach(x => rows.push({...x.val(),key:x.key}));
+    _cache.stock = rows;
+    const tbody  = document.getElementById("tablaStock");
+    const alerta = document.getElementById("stockAlerta");
+    if(!rows.length){ tbody.innerHTML='<tr><td colspan="5" class="empty-state">Sin stock registrado</td></tr>'; alerta.style.display="none"; return; }
+    let hayAlerta=false;
+    tbody.innerHTML = rows.map(r => {
+      const bajo = parseFloat(r.cantidad||0)<=parseFloat(r.minimo||0);
+      if(bajo) hayAlerta=true;
+      return `<tr class="${bajo?"stock-low":""}">
+        <td>${escapeHtml(r.producto)}</td>
+        <td>${escapeHtml(String(r.cantidad))}</td>
+        <td>${escapeHtml(r.unidad||"—")}</td>
+        <td><span class="badge ${bajo?"badge-red":"badge-green"}">${bajo?"⚠️ Bajo":"✓ OK"}</span></td>
+        <td>
+          <button type="button" class="btn-del" onclick="eliminar('stock','${r.key}','tablaStock',loadStock)" aria-label="Eliminar">✕</button>
+        </td>
+      </tr>`;
+    }).join("");
+    alerta.style.display = hayAlerta?"block":"none";
+  });
+}
+
+// ─── PIZZAS ─────────────────────────────────────────
+function guardarPizza() {
+  const nom    = document.getElementById("pNom").value.trim();
+  const precio = document.getElementById("pPrecio").value;
+  const costo  = document.getElementById("pCosto").value||0;
+  const desc   = document.getElementById("pDesc").value.trim();
+  if(!nom||precio===""){ toast("Completá nombre y precio","error"); return; }
+  const pr = parseFloat(precio);
+  const co = parseFloat(costo);
+  if(!Number.isFinite(pr)||pr<0){ toast("Precio inválido","error"); return; }
+  if(!Number.isFinite(co)||co<0){ toast("Costo inválido","error"); return; }
+  setBtnLoading("btnAddPizza",true);
+  push(dbRef(db,"users/"+uid()+"/pizzas"),{nombre:nom,precio:pr,costo:co,descripcion:desc})
+    .then(()=>{
+      ["pNom","pPrecio","pCosto","pDesc"].forEach(id=>document.getElementById(id).value="");
+      toast("Pizza agregada ✓","success");
+      loadPizzas();
+    })
+    .catch(()=> toast("No se pudo guardar","error"))
+    .finally(()=> setBtnLoading("btnAddPizza",false,"+ Agregar"));
+}
+
+function loadPizzas() {
+  get(dbRef(db,"users/"+uid()+"/pizzas")).then(snap => {
+    const rows=[];
+    snap.forEach(x => rows.push({...x.val(),key:x.key}));
+    _cache.pizzas = rows;
+
+    // Tabla
+    const tbody = document.getElementById("tablaPizzas");
+    if(!rows.length){
+      tbody.innerHTML='<tr><td colspan="6" class="empty-state">Sin pizzas cargadas</td></tr>';
+      document.getElementById("pizzaCards").innerHTML='<p class="empty-state">Sin pizzas cargadas</p>';
+      return;
+    }
+    tbody.innerHTML = rows.map(r => {
+      const gan = parseFloat(r.precio||0)-parseFloat(r.costo||0);
+      const mar = r.precio>0 ? (gan/r.precio*100).toFixed(1) : 0;
+      const mc  = mar>=50?"badge-green":mar>=30?"badge-orange":"badge-red";
+      return `<tr>
+        <td><b>${escapeHtml(r.nombre)}</b><br><small style="color:var(--muted)">${escapeHtml(r.descripcion||"")}</small></td>
+        <td class="amount-pos">${fmt(r.precio)}</td>
+        <td class="amount-neg">${fmt(r.costo)}</td>
+        <td class="${gan>=0?"amount-pos":"amount-neg"}">${fmt(gan)}</td>
+        <td><span class="badge ${mc}">${mar}%</span></td>
+        <td><button type="button" class="btn-del" onclick="eliminar('pizzas','${r.key}','tablaPizzas',loadPizzas)" aria-label="Eliminar">✕</button></td>
+      </tr>`;
+    }).join("");
+
+    // Tarjetas visuales
+    document.getElementById("pizzaCards").innerHTML = rows.map(r => {
+      const gan = parseFloat(r.precio||0)-parseFloat(r.costo||0);
+      const mar = r.precio>0 ? (gan/r.precio*100).toFixed(1) : 0;
+      const mc  = mar>=50?"var(--green)":mar>=30?"var(--accent2)":"var(--red)";
+      return `<div class="pizza-card">
+        <div class="pizza-card-name">🍕 ${escapeHtml(r.nombre)}</div>
+        <div class="pizza-card-desc">${escapeHtml(r.descripcion||"Sin descripción")}</div>
+        <div class="pizza-card-row"><span>Precio</span><span class="amount-pos">${fmt(r.precio)}</span></div>
+        <div class="pizza-card-row"><span>Costo</span><span class="amount-neg">${fmt(r.costo)}</span></div>
+        <div class="pizza-card-row"><span>Ganancia</span><span style="color:${mc};font-weight:600">${fmt(gan)}</span></div>
+        <div style="margin-top:8px;text-align:right"><span class="badge" style="background:${mc}22;color:${mc}">${mar}% margen</span></div>
+      </div>`;
+    }).join("");
+  });
+}
+
+// ─── ELIMINAR ─────────────────────────────────────────
+function eliminar(tipo, key, tbodyId, cb) {
+  if(!confirm("¿Eliminar este registro?")) return;
+  remove(dbRef(db,"users/"+uid()+"/"+tipo+"/"+key))
+    .then(()=>{
+      toast("Registro eliminado","info");
+      if(typeof cb==="function") cb();
+      else loadTabla(tipo);
+      loadDashboard();
+    })
+    .catch(()=> toast("No se pudo eliminar","error"));
+}
+
+// ─── EXPORTAR CSV ──────────────────────────────────────────
+function exportarCSV(tipo) {
+  let rows=[], headers=[], filename="";
+  if(tipo==="ingresos") {
+    rows = _cache.ingresos||[];
+    headers=["Fecha","Descripcion","Categoria","Monto"];
+    filename="ingresos.csv";
+  } else if(tipo==="gastos") {
+    rows = _cache.gastos||[];
+    headers=["Fecha","Descripcion","Categoria","Monto"];
+    filename="gastos.csv";
+  } else if(tipo==="stock") {
+    rows = _cache.stock||[];
+    headers=["Producto","Cantidad","Unidad","Minimo"];
+    filename="stock.csv";
+  } else if(tipo==="todos") {
+    const ing = (_cache.ingresos||[]).map(r=>({Fecha:r.fecha,Descripcion:r.descripcion,Categoria:r.categoria,Tipo:"Ingreso",Monto:r.monto}));
+    const gas = (_cache.gastos||[]).map(r=>({Fecha:r.fecha,Descripcion:r.descripcion,Categoria:r.categoria,Tipo:"Gasto",Monto:r.monto}));
+    rows = [...ing,...gas].sort((a,b)=>(b.Fecha||"").localeCompare(a.Fecha||""));
+    headers=["Fecha","Descripcion","Categoria","Tipo","Monto"];
+    filename="movimientos.csv";
+  }
+
+  if(!rows.length){ toast("No hay datos para exportar","info"); return; }
+
+  const csvContent = [
+    headers.join(","),
+    ...rows.map(r => headers.map(h => {
+      const k = h.toLowerCase();
+      const v = r[k]!==undefined ? r[k] : (r[h]!==undefined ? r[h] : "");
+      return `"${String(v).replace(/"/g,'""')}"`;
+    }).join(","))
+  ].join("\n");
+
+  const blob = new Blob(["\uFEFF"+csvContent], {type:"text/csv;charset=utf-8;"});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href=url; a.download=filename; a.click();
+  URL.revokeObjectURL(url);
+  toast("CSV descargado","success");
+}
+
+
+// Exponer funciones al scope global (necesario con type="module")
+window.uid = uid;
+window.fmt = fmt;
+window.fmtDate = fmtDate;
+window.today = today;
+window.escapeHtml = escapeHtml;
+window.toast = toast;
+window.setBtnLoading = setBtnLoading;
+window.setPeriod = setPeriod;
+window.inPeriod = inPeriod;
+window.authErrorMessage = authErrorMessage;
+window.switchTab = switchTab;
+window.showMsg = showMsg;
+window.login = login;
+window.register = register;
+window.logout = logout;
+window.goTo = goTo;
+window.toggleMenu = toggleMenu;
+window.setDefaultDates = setDefaultDates;
+window.loadDashboard = loadDashboard;
+window.guardarIngreso = guardarIngreso;
+window.guardarGasto = guardarGasto;
+window.loadTabla = loadTabla;
+window.renderTabla = renderTabla;
+window.sortTabla = sortTabla;
+window.filtrarTabla = filtrarTabla;
+window.filteredRows = filteredRows;
+window.limpiarFiltros = limpiarFiltros;
+window.toggleEdit = toggleEdit;
+window.guardarEdit = guardarEdit;
+window.guardarStock = guardarStock;
+window.loadStock = loadStock;
+window.guardarPizza = guardarPizza;
+window.loadPizzas = loadPizzas;
+window.eliminar = eliminar;
+window.exportarCSV = exportarCSV;
 </script>
 </body>
 </html>
