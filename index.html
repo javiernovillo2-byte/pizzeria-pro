@@ -1,3 +1,449 @@
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzería Pro - Gestión Simple</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif}
+        :root{--p:#667eea;--s:#764ba2;--g:#28a745;--r:#dc3545;--y:#ffc107;--b:#1a1a2e;--c:#16213e;--t:#eaeaea}
+        body{background:linear-gradient(135deg,var(--b) 0%,#0f3460 100%);min-height:100vh;color:var(--t);padding:20px}
+        .wrap{max-width:1400px;margin:0 auto}
+        header{text-align:center;padding:30px 0;border-bottom:2px solid var(--p);margin-bottom:30px}
+        h1{font-size:2.5em;background:linear-gradient(90deg,var(--p),var(--s));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+        .sub{color:#888}
+        .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:30px}
+        .card{background:var(--c);padding:25px;border-radius:15px;border:1px solid rgba(102,126,234,.2)}
+        .card:hover{transform:translateY(-3px);transition:.3s}
+        .icon{width:50px;height:50px;background:rgba(102,126,234,.2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:15px}
+        .lab{font-size:.85em;color:#888;text-transform:uppercase}
+        .val{font-size:1.8em;font-weight:bold;margin-top:5px}
+        .pos{color:var(--g)}.neg{color:var(--r)}.war{color:var(--y)}
+        .box{background:var(--c);padding:30px;border-radius:15px;margin-bottom:20px;border:1px solid rgba(102,126,234,.1)}
+        .tit{font-size:1.4em;margin-bottom:20px;padding-bottom:10px;border-bottom:2px solid var(--p);display:flex;align-items:center;gap:10px}
+        .tabs{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;background:rgba(0,0,0,.2);padding:10px;border-radius:50px}
+        .tab{padding:12px 24px;background:transparent;border:none;border-radius:25px;color:#888;cursor:pointer;transition:.3s}
+        .tab.active{background:linear-gradient(135deg,var(--p),var(--s));color:#fff}
+        .hid{display:none!important}
+        .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;margin-bottom:15px}
+        .col{display:flex;flex-direction:column}
+        label{font-size:.9em;color:#aaa;margin-bottom:5px;font-weight:600}
+        input,select,textarea{padding:12px;background:rgba(0,0,0,.2);border:1px solid rgba(102,126,234,.3);border-radius:8px;color:#fff;font-size:16px}
+        input:focus,select:focus,textarea:focus{outline:none;border-color:var(--p)}
+        button{background:linear-gradient(135deg,var(--p),var(--s));color:#fff;border:none;padding:12px 30px;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;transition:.3s}
+        button:hover{transform:translateY(-2px);box-shadow:0 5px 20px rgba(102,126,234,.4)}
+        .btn2{background:linear-gradient(135deg,#6c757d,#495057)}
+        .btn3{background:linear-gradient(135deg,var(--g),#1e7e34)}
+        .btn4{background:linear-gradient(135deg,var(--r),#c82333)}
+        .btn5{padding:8px 16px;font-size:14px}
+        table{width:100%;border-collapse:collapse;margin-top:15px;font-size:.9em}
+        th,td{padding:12px;text-align:left;border-bottom:1px solid rgba(102,126,234,.2)}
+        th{background:rgba(102,126,234,.1);color:var(--p)}
+        .tag{padding:5px 12px;border-radius:20px;font-size:.8em;font-weight:600}
+        .ting{background:rgba(40,167,69,.2);color:var(--g)}.tgas{background:rgba(220,53,69,.2);color:var(--r)}
+        .bar{width:100%;height:20px;background:rgba(0,0,0,.3);border-radius:10px;overflow:hidden;margin-top:5px}
+        .fill{height:100%;background:linear-gradient(90deg,var(--p),var(--s));display:flex;align-items:center;justify-content:center;color:#fff;font-size:.75em;font-weight:bold}
+        .alert{padding:15px;border-radius:10px;margin-bottom:20px;display:none;border-left:4px solid}
+        .al1{background:rgba(40,167,69,.1);color:var(--g);border-color:var(--g)}
+        .al2{background:rgba(220,53,69,.1);color:var(--r);border-color:var(--r)}
+        .item{background:rgba(0,0,0,.2);padding:15px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;border-left:4px solid var(--p)}
+        .item.crit{border-left-color:var(--r);background:rgba(220,53,69,.1)}
+        .pizza{background:rgba(0,0,0,.2);border:1px solid rgba(102,126,234,.2);border-radius:15px;padding:20px;margin-bottom:15px}
+        .pname{font-size:1.3em;font-weight:bold;margin-bottom:10px}
+        .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:15px}
+        .stat{text-align:center;padding:10px;background:rgba(102,126,234,.1);border-radius:8px}
+        .stlab{font-size:.8em;color:#888}.stval{font-weight:bold;color:var(--p)}
+        .ings{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+        .ing{background:rgba(102,126,234,.2);padding:5px 12px;border-radius:20px;font-size:.85em}
+        .modal{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.8);align-items:center;justify-content:center;z-index:1000}
+        .modal.on{display:flex}
+        .mcontent{background:var(--c);padding:30px;border-radius:20px;max-width:500px;width:90%;border:1px solid rgba(102,126,234,.3)}
+        .x{float:right;background:none;border:none;font-size:28px;color:#666;cursor:pointer}
+        @media(max-width:768px){.row{grid-template-columns:1fr}.stats{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <header>
+            <h1>🍕 Pizzería Pro</h1>
+            <p class="sub">Sistema de Gestión - Datos guardados automáticamente</p>
+        </header>
+
+        <div id="alert" class="alert"></div>
+
+        <div class="grid">
+            <div class="card">
+                <div class="icon">💰</div>
+                <div class="lab">Ingresos</div>
+                <div class="val pos" id="v1">$0</div>
+            </div>
+            <div class="card">
+                <div class="icon">💸</div>
+                <div class="lab">Gastos</div>
+                <div class="val neg" id="v2">$0</div>
+            </div>
+            <div class="card">
+                <div class="icon">⚖️</div>
+                <div class="lab">Balance</div>
+                <div class="val" id="v3">$0</div>
+            </div>
+            <div class="card">
+                <div class="icon">📊</div>
+                <div class="lab">Margen</div>
+                <div class="val" id="v4">0%</div>
+            </div>
+            <div class="card">
+                <div class="icon">🧾</div>
+                <div class="lab">IVA</div>
+                <div class="val" style="color:var(--info)" id="v5">$0</div>
+            </div>
+            <div class="card">
+                <div class="icon">📦</div>
+                <div class="lab">Stock Bajo</div>
+                <div class="val war" id="v6">0</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab on" onclick="tab('mov',this)">📋 Movimientos</button>
+            <button class="tab" onclick="tab('add',this)">➕ Agregar</button>
+            <button class="tab" onclick="tab('piz',this)">🍕 Pizzas</button>
+            <button class="tab" onclick="tab('sto',this)">📦 Stock</button>
+            <button class="tab" onclick="tab('ana',this)">📈 Análisis</button>
+            <button class="tab" onclick="tab('cfg',this)">⚙️ Config</button>
+        </div>
+
+        <!-- Movimientos -->
+        <div id="mov" class="box">
+            <div class="tit">📋 Historial</div>
+            <div class="row" style="margin-bottom:20px">
+                <input type="text" id="bus" placeholder="🔍 Buscar..." onkeyup="fil()" style="min-width:200px">
+                <input type="date" id="f1" onchange="fil()">
+                <input type="date" id="f2" onchange="fil()">
+                <select id="ft" onchange="fil()"><option value="">Todos</option><option value="in">Ingresos</option><option value="ex">Gastos</option></select>
+                <button class="btn2 btn5" onclick="clf()">Limpiar</button>
+            </div>
+            <div style="overflow-x:auto">
+                <table>
+                    <thead><tr><th>Fecha</th><th>Tipo</th><th>Categoría</th><th>Descripción</th><th>Monto</th><th>Total</th><th></th></tr></thead>
+                    <tbody id="tb"></tbody>
+                </table>
+            </div>
+            <div style="margin-top:20px">
+                <button class="btn2" onclick="exp()">📥 Exportar CSV</button>
+                <button class="btn4" onclick="delall()">🗑️ Borrar Todo</button>
+            </div>
+        </div>
+
+        <!-- Agregar -->
+        <div id="add" class="box hid">
+            <div class="tit">➕ Nuevo Movimiento</div>
+            <form onsubmit="save(event)">
+                <div class="row">
+                    <div class="col">
+                        <label>Tipo *</label>
+                        <select id="t1" required onchange="cat()">
+                            <option value="">Seleccionar...</option>
+                            <option value="in">💰 Ingreso</option>
+                            <option value="ex">💸 Gasto</option>
+                        </select>
+                    </div>
+                    <div class="col">
+                        <label>Categoría *</label>
+                        <select id="t2" required><option value="">Primero elige tipo</option></select>
+                    </div>
+                    <div class="col">
+                        <label>Monto Neto *</label>
+                        <input type="number" id="t3" step="0.01" required oninput="calc()">
+                    </div>
+                    <div class="col">
+                        <label>IVA %</label>
+                        <input type="number" id="t4" step="0.01" value="21" oninput="calc()">
+                    </div>
+                    <div class="col">
+                        <label>Total con IVA</label>
+                        <input type="number" id="t5" readonly style="background:rgba(0,0,0,.4)">
+                    </div>
+                    <div class="col">
+                        <label>Fecha *</label>
+                        <input type="date" id="t6" required>
+                    </div>
+                </div>
+                <div class="col" style="margin-bottom:20px">
+                    <label>Descripción</label>
+                    <textarea id="t7" rows="3"></textarea>
+                </div>
+                <button type="submit">💾 Guardar Movimiento</button>
+            </form>
+        </div>
+
+        <!-- Pizzas -->
+        <div id="piz" class="box hid">
+            <div class="tit">🍕 Carta de Pizzas</div>
+            <button onclick="openp()" style="margin-bottom:20px">➕ Nueva Pizza</button>
+            <div id="lp"></div>
+        </div>
+
+        <!-- Stock -->
+        <div id="sto" class="box hid">
+            <div class="tit">📦 Inventario</div>
+            <div class="box" style="background:rgba(0,0,0,.2)">
+                <div class="row">
+                    <div class="col"><label>Producto</label><input type="text" id="s1" placeholder="Ej: Harina"></div>
+                    <div class="col"><label>Unidad</label><select id="s2"><option value="kg">kg</option><option value="g">g</option><option value="l">L</option><option value="un">un</option></select></div>
+                    <div class="col"><label>Cantidad</label><input type="number" id="s3" step="0.01"></div>
+                    <div class="col"><label>Stock Mínimo</label><input type="number" id="s4" step="0.01"></div>
+                    <div class="col"><label>Costo Unitario</label><input type="number" id="s5" step="0.01"></div>
+                    <div class="col" style="justify-content:flex-end"><button onclick="adds()" style="width:100%">➕ Agregar</button></div>
+                </div>
+            </div>
+            <input type="text" id="s6" placeholder="🔍 Buscar producto..." style="max-width:300px;margin-bottom:20px" onkeyup="rs()">
+            <div id="ls"></div>
+        </div>
+
+        <!-- Análisis -->
+        <div id="ana" class="box hid">
+            <div class="tit">📈 Análisis Financiero</div>
+            <div class="row" style="margin-bottom:30px">
+                <div class="box" style="background:rgba(0,0,0,.2)"><div class="lab">Ticket Promedio</div><div class="val" id="a1">$0</div></div>
+                <div class="box" style="background:rgba(0,0,0,.2)"><div class="lab">Ventas por Día</div><div class="val" id="a2">$0</div></div>
+                <div class="box" style="background:rgba(0,0,0,.2)"><div class="lab">Proyección Mensual</div><div class="val" id="a3">$0</div></div>
+                <div class="box" style="background:rgba(0,0,0,.2)"><div class="lab">Punto de Equilibrio</div><div class="val" id="a4">$0</div></div>
+            </div>
+            <div class="tit">💰 Desglose de Gastos</div>
+            <div id="dg"></div>
+            <div class="tit" style="margin-top:30px">💡 Recomendación</div>
+            <div id="rec" style="padding:20px;background:rgba(0,0,0,.2);border-radius:10px">Cargando análisis...</div>
+        </div>
+
+        <!-- Config -->
+        <div id="cfg" class="box hid">
+            <div class="tit">⚙️ Configuración</div>
+            <div class="row">
+                <div class="col"><label>Nombre del Negocio</label><input type="text" id="c1"></div>
+                <div class="col"><label>Días de apertura/semana</label><input type="number" id="c2" min="1" max="7"></div>
+                <div class="col"><label>Empleados</label><input type="number" id="c3" min="1"></div>
+                <div class="col"><label>Meta de margen %</label><input type="number" id="c4" min="0" max="100"></div>
+                <div class="col"><label>IVA por defecto %</label><input type="number" id="c5" min="0" max="100"></div>
+                <div class="col"><label>Moneda</label><select id="c6"><option value="$">$</option><option value="USD">USD</option><option value="€">€</option></select></div>
+            </div>
+            <button onclick="scfg()" style="margin-top:20px">💾 Guardar Configuración</button>
+            <div class="tit" style="margin-top:30px">📥 Respaldo de Datos</div>
+            <button onclick="back()" class="btn3">Descargar Backup (JSON)</button>
+            <p style="margin-top:10px;color:#888;font-size:.9em">Guarda este archivo para no perder tus datos</p>
+        </div>
+    </div>
+
+    <!-- Modal Pizza -->
+    <div id="mod" class="modal">
+        <div class="mcontent">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h2>🍕 <span id="mt">Nueva Pizza</span></h2>
+                <button class="x" onclick="closep()">×</button>
+            </div>
+            <form onsubmit="sp(event)">
+                <input type="hidden" id="pid">
+                <div class="col" style="margin-bottom:15px"><label>Nombre *</label><input type="text" id="pn" required></div>
+                <div class="col" style="margin-bottom:15px"><label>Tamaño</label><select id="pz"><option value="Individual">Individual</option><option value="Mediana">Mediana</option><option value="Familiar" selected>Familiar</option><option value="Grande">Grande</option></select></div>
+                <div class="row" style="margin-bottom:15px">
+                    <div class="col"><label>Precio Venta *</label><input type="number" id="pp" step="0.01" required oninput="cmar()"></div>
+                    <div class="col"><label>Costo *</label><input type="number" id="pc" step="0.01" required oninput="cmar()"></div>
+                </div>
+                <div style="background:rgba(0,0,0,.2);padding:15px;border-radius:8px;margin-bottom:15px">
+                    <div style="display:flex;justify-content:space-between"><span>Margen:</span><span id="pm" style="font-weight:bold;color:var(--g)">0%</span></div>
+                </div>
+                <div class="col" style="margin-bottom:20px"><label>Ingredientes (separados por coma)</label><textarea id="pi" rows="2" placeholder="Masa, Salsa, Queso..."></textarea></div>
+                <button type="submit">💾 Guardar Pizza</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Datos iniciales
+        let d={t:[],p:[],s:[],c:{n:'Pizzería Pro',d:4,e:2,m:30,i:21,cc:'$'}};
+        const cats={in:[{v:'ven',l:'🍕 Ventas'},{v:'beb',l:'🥤 Bebidas'},{v:'del',l:'🛵 Delivery'},{v:'des',l:'🍰 Postres'},{v:'otr',l:'💵 Otros'}],ex:[{v:'ing',l:'🥫 Ingredientes'},{v:'ser',l:'💡 Servicios'},{v:'alq',l:'🏠 Alquiler'},{v:'sue',l:'👥 Sueldos'},{v:'emp',l:'📦 Empaque'},{v:'mar',l:'📱 Marketing'},{v:'equ',l:'🔧 Equipo'},{v:'otr',l:'💸 Otros'}]};
+
+        // Cargar datos guardados
+        const saved=localStorage.getItem('pizeria_datos');
+        if(saved)d=JSON.parse(saved);
+
+        function save(){localStorage.setItem('pizeria_datos',JSON.stringify(d));up();}
+
+        // Navegación
+        function tab(id,el){
+            document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+            document.querySelectorAll('.box').forEach(b=>b.classList.add('hid'));
+            el.classList.add('on');
+            document.getElementById(id).classList.remove('hid');
+            if(id==='mov')rm();
+            if(id==='ana')an();
+            if(id==='sto')rs();
+            if(id==='piz')rp();
+            if(id==='cfg')lc();
+        }
+
+        // Categorías
+        function cat(){
+            const t=document.getElementById('t1').value,s=document.getElementById('t2');
+            s.innerHTML='<option value="">Seleccionar...</option>';
+            if(t&&cats[t])cats[t].forEach(c=>{const o=document.createElement('option');o.value=c.v;o.textContent=c.l;s.appendChild(o)});
+        }
+
+        // Cálculos
+        function calc(){
+            const m=parseFloat(document.getElementById('t3').value)||0,i=parseFloat(document.getElementById('t4').value)||0;
+            document.getElementById('t5').value=(m*(1+i/100)).toFixed(2);
+        }
+
+        // Guardar movimiento
+        function save(e){
+            e.preventDefault();
+            const tr={id:Date.now(),t:document.getElementById('t1').value,c:document.getElementById('t2').value,m:parseFloat(document.getElementById('t3').value),i:parseFloat(document.getElementById('t4').value)||0,tt:parseFloat(document.getElementById('t5').value),f:document.getElementById('t6').value,de:document.getElementById('t7').value||'-'};
+            d.t.push(tr);save();msg('Movimiento guardado','1');e.target.reset();document.getElementById('t6').valueAsDate=new Date();document.getElementById('t4').value=d.c.i;cat();
+        }
+
+        // Mostrar movimientos
+        function rm(data=d.t){
+            const b=document.getElementById('tb');b.innerHTML='';
+            [...data].sort((a,b)=>new Date(b.f)-new Date(a.f)).forEach(t=>{
+                const is=t.t==='in',sg=is?'+':'-',cl=is?'pos':'neg';
+                b.insertAdjacentHTML('beforeend',`<tr><td>${fd(t.f)}</td><td><span class="tag ${is?'ting':'tgas'}">${is?'Ingreso':'Gasto'}</span></td><td>${gl(t.t,t.c)}</td><td>${t.de}</td><td class="${cl}">${sg}${d.c.cc}${t.m.toFixed(2)}</td><td><strong>${sg}${d.c.cc}${t.tt.toFixed(2)}</strong></td><td><button class="btn4 btn5" onclick="dt(${t.id})">🗑️</button></td></tr>`);
+            });
+        }
+
+        function fil(){
+            const b=document.getElementById('bus').value.toLowerCase(),df=document.getElementById('f1').value,dt=document.getElementById('f2').value,ft=document.getElementById('ft').value;
+            rm(d.t.filter(t=>{const ds=t.de.toLowerCase().includes(b),tp=!ft||t.t===ft,fd=(!df||t.f>=df)&&(!dt||t.f<=dt);return ds&&tp&&fd}));
+        }
+
+        function clf(){document.getElementById('bus').value='';document.getElementById('f1').value='';document.getElementById('f2').value='';document.getElementById('ft').value='';rm();}
+
+        function dt(id){if(confirm('¿Eliminar este movimiento?')){d.t=d.t.filter(t=>t.id!==id);save();msg('Eliminado','2');}}
+
+        // Actualizar dashboard
+        function up(){
+            const i=d.t.filter(t=>t.t==='in').reduce((s,t)=>s+t.m,0),e=d.t.filter(t=>t.t==='ex').reduce((s,t)=>s+t.m,0),tx=d.t.reduce((s,t)=>s+(t.tt-t.m),0),b=i-e,m=i>0?((b/i)*100).toFixed(1):0;
+            document.getElementById('v1').textContent=d.c.cc+i.toFixed(2);
+            document.getElementById('v2').textContent=d.c.cc+e.toFixed(2);
+            document.getElementById('v5').textContent=d.c.cc+tx.toFixed(2);
+            const nb=document.getElementById('v3');nb.textContent=d.c.cc+Math.abs(b).toFixed(2);nb.className='val '+(b>=0?'pos':'neg');
+            const pm=document.getElementById('v4');pm.textContent=m+'%';pm.className='val '+(m>=d.c.m?'pos':m>0?'war':'neg');
+            document.getElementById('v6').textContent=d.s.filter(x=>x.q<=x.m).length;
+        }
+
+        // Pizzas
+        function openp(id=null){
+            document.getElementById('mod').classList.add('on');
+            if(id){
+                const p=d.p.find(x=>x.id===id);
+                document.getElementById('mt').textContent='Editar Pizza';
+                document.getElementById('pid').value=p.id;
+                document.getElementById('pn').value=p.n;
+                document.getElementById('pz').value=p.z;
+                document.getElementById('pp').value=p.p;
+                document.getElementById('pc').value=p.c;
+                document.getElementById('pi').value=p.i.join(', ');
+                cmar();
+            }else{
+                document.querySelector('#mod form').reset();document.getElementById('mt').textContent='Nueva Pizza';document.getElementById('pid').value='';
+            }
+        }
+
+        function closep(){document.getElementById('mod').classList.remove('on');}
+
+        function cmar(){
+            const p=parseFloat(document.getElementById('pp').value)||0,c=parseFloat(document.getElementById('pc').value)||0;
+            if(p>0){const m=((p-c)/p*100).toFixed(1);const el=document.getElementById('pm');el.textContent=m+'%';el.style.color=m>=d.c.m?'var(--g)':m>0?'var(--y)':'var(--r)';}
+        }
+
+        function sp(e){
+            e.preventDefault();
+            const p={id:document.getElementById('pid').value||Date.now().toString(),n:document.getElementById('pn').value,z:document.getElementById('pz').value,p:parseFloat(document.getElementById('pp').value),c:parseFloat(document.getElementById('pc').value),i:document.getElementById('pi').value.split(',').map(x=>x.trim()).filter(x=>x)};
+            const ix=d.p.findIndex(x=>x.id===p.id);if(ix>=0)d.p[ix]=p;else d.p.push(p);
+            save();closep();msg('Pizza guardada','1');
+        }
+
+        function rp(){
+            const c=document.getElementById('lp');c.innerHTML='';
+            d.p.forEach(p=>{
+                const m=((p.p-p.c)/p.p*100).toFixed(1);
+                c.insertAdjacentHTML('beforeend',`<div class="pizza"><div class="pname">${p.n} <span style="font-size:.7em;color:#888">${p.z}</span></div><div class="ings">${p.i.map(x=>`<span class="ing">${x}</span>`).join('')}</div><div class="stats"><div class="stat"><span class="stlab">Precio</span><span class="stval">${d.c.cc}${p.p.toFixed(2)}</span></div><div class="stat"><span class="stlab">Costo</span><span class="stval">${d.c.cc}${p.c.toFixed(2)}</span></div><div class="stat"><span class="stlab">Margen</span><span class="stval ${m>=d.c.m?'pos':'war'}">${m}%</span></div></div><div style="margin-top:15px"><button class="btn5 btn2" onclick="openp('${p.id}')">✏️</button> <button class="btn5 btn4" onclick="dp('${p.id}')">🗑️</button></div></div>`);
+            });
+        }
+
+        function dp(id){if(confirm('¿Eliminar pizza?')){d.p=d.p.filter(p=>p.id!==id);save();rp();}}
+
+        // Stock
+        function adds(){
+            const i={id:Date.now(),n:document.getElementById('s1').value,u:document.getElementById('s2').value,q:parseFloat(document.getElementById('s3').value)||0,m:parseFloat(document.getElementById('s4').value)||0,c:parseFloat(document.getElementById('s5').value)||0};
+            if(!i.n){msg('Ingresa nombre','3');return}
+            const ex=d.s.find(x=>x.n===i.n);if(ex){ex.q=i.q;ex.m=i.m;ex.c=i.c}else d.s.push(i);
+            save();document.getElementById('s1').value='';document.getElementById('s3').value='';document.getElementById('s4').value='';document.getElementById('s5').value='';msg('Producto agregado','1');
+        }
+
+        function rs(){
+            const b=document.getElementById('s6').value.toLowerCase(),c=document.getElementById('ls');c.innerHTML='';
+            d.s.filter(x=>x.n.toLowerCase().includes(b)).forEach(i=>{
+                const l=i.q<=i.m;
+                c.insertAdjacentHTML('beforeend',`<div class="item ${l?'crit':''}"><div><div style="font-weight:bold">${i.n} ${l?'<span class="tag tgas">⚠️ BAJO</span>':'<span class="tag ting">✓ OK</span>'}</div><div style="color:#888;font-size:.9em">Stock: ${i.q}${i.u} | Mín: ${i.m}${i.u} | $${i.c}/${i.u}</div></div><div style="display:flex;gap:10px;align-items:center"><button class="btn5 btn2" onclick="aj(${i.id},-1)">-</button><input type="number" class="q" value="${i.q}" onchange="us(${i.id},this.value)"><button class="btn5 btn2" onclick="aj(${i.id},1)">+</button><button class="btn5 btn4" onclick="ds(${i.id})">🗑️</button></div></div>`);
+            });
+        }
+
+        function aj(id,dl){const i=d.s.find(x=>x.id===id);if(i){i.q=Math.max(0,i.q+dl);save();rs();up();}}
+        function us(id,v){const i=d.s.find(x=>x.id===id);if(i){i.q=Math.max(0,parseFloat(v)||0);save();rs();}}
+        function ds(id){if(confirm('¿Eliminar producto?')){d.s=d.s.filter(x=>x.id!==id);save();rs();}}
+
+        // Análisis
+        function an(){
+            const i=d.t.filter(t=>t.t==='in'),e=d.t.filter(t=>t.t==='ex'),ti=i.reduce((s,t)=>s+t.m,0),te=e.reduce((s,t)=>s+t.m,0),nd=new Set(i.map(t=>t.f)).size||1,vd=ti/nd,pm=vd*d.c.d*4,cf=e.filter(t=>['alq','sue','ser'].includes(t.c)).reduce((s,t)=>s+t.m,0),pe=nd>0?cf/nd:0;
+            document.getElementById('a1').textContent=d.c.cc+(i.length>0?(ti/i.length):0).toFixed(2);
+            document.getElementById('a2').textContent=d.c.cc+vd.toFixed(2);
+            document.getElementById('a3').textContent=d.c.cc+pm.toFixed(2);
+            document.getElementById('a4').textContent=d.c.cc+pe.toFixed(2);
+            const bc={};e.forEach(t=>bc[t.c]=(bc[t.c]||0)+t.m);const so=Object.entries(bc).sort((a,b)=>b[1]-a[1]),mx=so[0]?.[1]||1;
+            document.getElementById('dg').innerHTML=so.map(([c,a])=>{const p=((a/te)*100).toFixed(1);return`<div style="margin-bottom:15px"><div style="display:flex;justify-content:space-between;margin-bottom:5px"><span>${gl('ex',c)}</span><span><strong>${d.c.cc}${a.toFixed(2)}</strong> (${p}%)</span></div><div class="bar"><div class="fill" style="width:${(a/mx*100).toFixed(0)}%">${p}%</div></div></div>`}).join('')||'<p style="color:#666">Sin gastos registrados</p>';
+            const m=ti>0?((ti-te)/ti*100).toFixed(1):0;let r='';if(d.t.length===0)r='Registra movimientos para obtener recomendaciones.';else if(m<0)r=`⚠️ Estás en pérdidas (${m}%). Revisa tus gastos fijos.`;else if(m<d.c.m)r=`📊 Tu margen es ${m}%, debajo de la meta ${d.c.m}%. Intenta reducir costos o aumentar precios.`;else r=`✅ ¡Excelente! Margen saludable de ${m}%. Mantén el control.`;
+            document.getElementById('rec').textContent=r;
+        }
+
+        // Config
+        function lc(){
+            document.getElementById('c1').value=d.c.n;
+            document.getElementById('c2').value=d.c.d;
+            document.getElementById('c3').value=d.c.e;
+            document.getElementById('c4').value=d.c.m;
+            document.getElementById('c5').value=d.c.i;
+            document.getElementById('c6').value=d.c.cc;
+        }
+
+        function scfg(){
+            d.c={n:document.getElementById('c1').value,d:parseInt(document.getElementById('c2').value),e:parseInt(document.getElementById('c3').value),m:parseFloat(document.getElementById('c4').value),i:parseFloat(document.getElementById('c5').value),cc:document.getElementById('c6').value};
+            save();document.querySelector('h1').innerHTML='🍕 '+d.c.n;msg('Configuración guardada','1');
+        }
+
+        function back(){
+            const b=new Blob([JSON.stringify(d,null,2)],{type:'application/json'}),u=URL.createObjectURL(b),a=document.createElement('a');
+            a.href=u;a.download=`pizzeria_backup_${new Date().toISOString().split('T')[0]}.json`;a.click();msg('Backup descargado','1');
+        }
+
+        function exp(){
+            let c='Fecha,Tipo,Categoria,Descripcion,Monto,IVA,Total\n';
+            d.t.forEach(t=>c+=`${t.f},${t.t},${t.c},"${t.de}",${t.m},${t.tt-t.m},${t.tt}\n`);
+            const b=new Blob([c],{type:'text/csv'}),u=URL.createObjectURL(b),a=document.createElement('a');
+            a.href=u;a.download=`movimientos_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+        }
+
+        function delall(){if(confirm('¿BORRAR TODOS LOS DATOS? No se puede deshacer.')){d={t:[],p:[],s:[],c:d.c};save();msg('Todos los datos eliminados','2');}}
+
+        // Utilidades
+        function gl(t,v){const c=cats[t]||[],x=c.find(x=>x.v===v);return x?x.l:v;}
+        function fd(f){return new Date(f).toLocaleDateString('es-ES');}
+        function msg(m,t){const a=document.getElementById('alert');a.className='alert al'+t;a.textContent=m;a.style.display='block';setTimeout(()=>a.style.display='none',3000);}
+
+        // Inicializar
+        document.getElementById('t6').valueAsDate=new Date();
+        document.getElementById('t4').value=d.c.i;
+        up();rm();
+    </script>
+</body>
+</html>
