@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pizzería Pro - Gestor de Negocio</title>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 90%;
+            max-width: 500px;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .toggle-form {
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+        }
+
+        .toggle-form a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success {
+            background: #efe;
+            color: #3c3;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .dashboard {
+            display: none;
+        }
+
+        .dashboard h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .info-card strong {
+            color: #333;
+        }
+
+        .logout-btn {
+            background: #ff6b6b;
+            margin-top: 20px;
+        }
+
+        .status {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .status.online {
+            color: #28a745;
+        }
+
+        .status.offline {
+            color: #dc3545;
+        }
+
+        .circle {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+
+        .circle.online {
+            background: #28a745;
+        }
+
+        .circle.offline {
+            background: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- FORMULARIO DE LOGIN/REGISTRO -->
+        <div id="authForm">
+            <h1>🍕 Pizzería Pro</h1>
+            
+            <div class="status" id="status">
+                <span class="circle online" id="statusCircle"></span>
+                <span id="statusText">Conectando...</span>
+            </div>
+
+            <div class="error" id="error"></div>
+            <div class="success" id="success"></div>
+
+            <!-- FORMULARIO DE REGISTRO -->
+            <div id="signupForm">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 20px;">Crear Cuenta</h2>
+                
+                <div class="form-group">
+                    <label>Nombre del Negocio</label>
+                    <input type="text" id="businessName" placeholder="Mi Pizzería">
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupEmail" placeholder="correo@gmail.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Contraseña (mínimo 6 caracteres)</label>
+                    <input type="password" id="signupPassword" placeholder="••••••">
+                </div>
+
+                <button onclick="signup()">Crear Cuenta</button>
+
+                <div class="toggle-form">
+                    ¿Ya tienes cuenta? <a onclick="toggleForm()">Inicia sesión</a>
+                </div>
+            </div>
+
+            <!-- FORMULARIO DE LOGIN -->
+            <div id="loginForm" style="display: none;">
+                <h2 style="text-align: center; color: #667eea; margin-bottom: 20px; font-size: 20px;">Iniciar Sesión</h2>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="correo@gmail.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="loginPassword" placeholder="••••••">
+                </div>
+
+                <button onclick="login()">Iniciar Sesión</button>
+
+                <div class="toggle-form">
+                    ¿No tienes cuenta? <a onclick="toggleForm()">Registrate</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="dashboard">
+            <h2>Bienvenido a Pizzería Pro 🍕</h2>
+            
+            <div class="info-card">
+                <strong>Nombre del Negocio:</strong><br>
+                <span id="displayBusinessName"></span>
+            </div>
+
+            <div class="info-card">
+                <strong>Email:</strong><br>
+                <span id="displayEmail"></span>
+            </div>
+
+            <div class="info-card">
+                <strong>Estado:</strong><br>
+                <span class="circle online" id="dashboardStatusCircle"></span>
+                <span id="dashboardStatus">Sincronizado ✓</span>
+            </div>
+
+            <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
+    </div>
+
+    <script src="firebase-config.js"></script>
+    <script>
+        // Variables globales
+        let currentUser = null;
+
+        // Inicializar autenticación
+        firebase.auth().onAuthStateChanged((user) => {
+            if (user) {
+                currentUser = user;
+                showDashboard();
+                loadUserData();
+            } else {
+                currentUser = null;
+                showAuthForm();
+            }
+        });
+
+        // Verificar conexión a internet
+        window.addEventListener('online', () => {
+            updateStatus(true);
+        });
+
+        window.addEventListener('offline', () => {
+            updateStatus(false);
+        });
+
+        // Actualizar estado de conexión
+        function updateStatus(online) {
+            const statusCircle = document.getElementById('statusCircle');
+            const statusText = document.getElementById('statusText');
+            const dashboardCircle = document.getElementById('dashboardStatusCircle');
+            const dashboardStatus = document.getElementById('dashboardStatus');
+
+            if (online) {
+                statusCircle.classList.add('online');
+                statusCircle.classList.remove('offline');
+                statusText.textContent = '🟢 Conectado';
+                dashboardCircle.classList.add('online');
+                dashboardCircle.classList.remove('offline');
+                dashboardStatus.textContent = 'Sincronizado ✓';
+            } else {
+                statusCircle.classList.remove('online');
+                statusCircle.classList.add('offline');
+                statusText.textContent = '🔴 Sin conexión';
+                dashboardCircle.classList.remove('online');
+                dashboardCircle.classList.add('offline');
+                dashboardStatus.textContent = 'Modo offline';
+            }
+        }
+
+        // Cambiar entre login y signup
+        function toggleForm() {
+            const signupForm = document.getElementById('signupForm');
+            const loginForm = document.getElementById('loginForm');
+            
+            if (signupForm.style.display === 'none') {
+                signupForm.style.display = 'block';
+                loginForm.style.display = 'none';
+            } else {
+                signupForm.style.display = 'none';
+                loginForm.style.display = 'block';
+            }
+            
+            clearMessages();
+        }
+
+        // Registro
+        function signup() {
+            const email = document.getElementById('signupEmail').value;
+            const password = document.getElementById('signupPassword').value;
+            const businessName = document.getElementById('businessName').value;
+
+            if (!email || !password || !businessName) {
+                showError('Por favor completa todos los campos');
+                return;
+            }
+
+            if (password.length < 6) {
+                showError('La contraseña debe tener mínimo 6 caracteres');
+                return;
+            }
+
+            firebase.auth().createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Guardar datos en la base de datos
+                    const userId = firebase.auth().currentUser.uid;
+                    firebase.database().ref('users/' + userId).set({
+                        email: email,
+                        businessName: businessName,
+                        createdAt: new Date().toISOString()
+                    });
+                    showSuccess('Cuenta creada exitosamente');
+                })
+                .catch((error) => {
+                    showError(error.message);
+                });
+        }
+
+        // Login
+        function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (!email || !password) {
+                showError('Por favor completa todos los campos');
+                return;
+            }
+
+            firebase.auth().signInWithEmailAndPassword(email, password)
+                .catch((error) => {
+                    showError(error.message);
+                });
+        }
+
+        // Logout
+        function logout() {
+            firebase.auth().signOut();
+        }
+
+        // Mostrar formulario de autenticación
+        function showAuthForm() {
+            document.getElementById('authForm').style.display = 'block';
+            document.getElementById('dashboard').style.display = 'none';
+        }
+
+        // Mostrar dashboard
+        function showDashboard() {
+            document.getElementById('authForm').style.display = 'none';
+            document.getElementById('dashboard').style.display = 'block';
+        }
+
+        // Cargar datos del usuario
+        function loadUserData() {
+            const userId = firebase.auth().currentUser.uid;
+            firebase.database().ref('users/' + userId).once('value', (snapshot) => {
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    document.getElementById('displayBusinessName').textContent = data.businessName || 'No especificado';
+                    document.getElementById('displayEmail').textContent = currentUser.email;
+                }
+            });
+        }
+
+        // Mostrar mensajes
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = '❌ ' + message;
+            errorDiv.style.display = 'block';
+            setTimeout(() => {
+                errorDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = '✓ ' + message;
+            successDiv.style.display = 'block';
+            setTimeout(() => {
+                successDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        function clearMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        // Inicializar estado de conexión
+        updateStatus(navigator.onLine);
+    </script>
+</body>
+</html>
