@@ -441,9 +441,20 @@
         function msg(m,t){const a=document.getElementById('alert');a.className='alert al'+t;a.textContent=m;a.style.display='block';setTimeout(()=>a.style.display='none',3000);}
 
         // Inicializar
+              // Inicializar
         document.getElementById('t6').valueAsDate=new Date();
         document.getElementById('t4').value=d.c.i;
         up();rm();
+    </script>
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+    <script src="firebase-config.js"></script>
+    <script src="app.js"></script>
+
+</body>
+</html>
     </script>
 </body>
 </html>
