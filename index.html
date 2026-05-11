@@ -1,82 +1,483 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pizzería Pro</title>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
-  <style>
-    *{box-sizing:border-box;margin:0;padding:0;font-family:Arial,sans-serif}
-    body{background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;padding:20px}
-    .container{max-width:1000px;margin:auto;background:#fff;border-radius:20px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
-    h1,h2{text-align:center;color:#667eea;margin-bottom:20px}
-    input,button{width:100%;padding:12px;margin:8px 0;border-radius:8px;font-size:16px}
-    input{border:2px solid #ddd} button{border:none;background:#667eea;color:#fff;cursor:pointer}
-    .logout-btn{background:#e74c3c}
-    .error,.success{display:none;padding:10px;border-radius:8px;margin-bottom:10px}.error{background:#fee;color:#c33}.success{background:#efe;color:#090}
-    #dashboard{display:none}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-top:20px}
-    .card{background:#f5f5f5;padding:25px;border-radius:15px;text-align:center;cursor:pointer}
-    .card:hover{background:#eef2ff}
-    .info{background:#f5f5f5;padding:15px;border-radius:10px;margin-bottom:15px}
-    .toggle-form{text-align:center;margin-top:15px}.toggle-form a{color:#667eea;cursor:pointer}
-  </style>
-</head>
-<body>
-<div class="container">
-  <div id="authForm">
-    <h1>🍕 Pizzería Pro</h1>
-    <div id="error" class="error"></div>
-    <div id="success" class="success"></div>
-    <div id="signupForm">
-      <h2>Crear Cuenta</h2>
-      <input id="businessName" placeholder="Nombre del negocio">
-      <input id="signupEmail" type="email" placeholder="Email">
-      <input id="signupPassword" type="password" placeholder="Contraseña (6+)">
-      <button onclick="signup()">Crear Cuenta</button>
-      <div class="toggle-form">¿Ya tienes cuenta? <a onclick="toggleForm()">Inicia sesión</a></div>
-    </div>
-    <div id="loginForm" style="display:none">
-      <h2>Iniciar Sesión</h2>
-      <input id="loginEmail" type="email" placeholder="Email">
-      <input id="loginPassword" type="password" placeholder="Contraseña">
-      <button onclick="login()">Entrar</button>
-      <div class="toggle-form">¿No tienes cuenta? <a onclick="toggleForm()">Regístrate</a></div>
-    </div>
-  </div>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <div id="dashboard">
-    <h1>🍕 Pizzería Pro</h1>
-    <div class="info"><strong>Negocio:</strong> <span id="displayBusinessName"></span></div>
-    <div class="info"><strong>Email:</strong> <span id="displayEmail"></span></div>
-    <h2>Tu sistema de gestión</h2>
-    <div class="grid">
-      <div class="card">📋 Movimientos</div>
-      <div class="card">🍕 Pizzas</div>
-      <div class="card">📦 Stock</div>
-      <div class="card">📈 Análisis</div>
-      <div class="card">⚙️ Configuración</div>
-      <div class="card">💰 Ventas</div>
+<title>Pizzería Pro</title>
+
+<style>
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+    font-family:Arial,sans-serif;
+}
+
+body{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    min-height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.container{
+    background:white;
+    width:100%;
+    max-width:1000px;
+    border-radius:20px;
+    padding:40px;
+    box-shadow:0 20px 60px rgba(0,0,0,.3);
+}
+
+h1,h2{
+    text-align:center;
+    color:#667eea;
+    margin-bottom:20px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    margin-bottom:15px;
+    border:2px solid #ddd;
+    border-radius:10px;
+    font-size:16px;
+}
+
+button{
+    width:100%;
+    padding:14px;
+    border:none;
+    border-radius:10px;
+    background:#667eea;
+    color:white;
+    font-size:16px;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+button:hover{
+    opacity:.9;
+}
+
+.link{
+    text-align:center;
+    margin-top:15px;
+}
+
+.link a{
+    color:#667eea;
+    cursor:pointer;
+}
+
+.error{
+    background:#ffdede;
+    color:#b00000;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:15px;
+    display:none;
+}
+
+.success{
+    background:#dfffe0;
+    color:#008000;
+    padding:10px;
+    border-radius:8px;
+    margin-bottom:15px;
+    display:none;
+}
+
+#dashboard{
+    display:none;
+}
+
+.card{
+    background:#f5f5f5;
+    padding:20px;
+    border-radius:12px;
+    margin-bottom:15px;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+    gap:20px;
+    margin-top:30px;
+}
+
+.module{
+    background:#f3f3f3;
+    padding:40px 20px;
+    border-radius:15px;
+    text-align:center;
+    cursor:pointer;
+    transition:.2s;
+    font-size:22px;
+}
+
+.module:hover{
+    transform:translateY(-5px);
+    background:#ececec;
+}
+
+#moduloContenido{
+    margin-top:30px;
+    background:#f9f9f9;
+    padding:25px;
+    border-radius:15px;
+    display:none;
+}
+
+.logout{
+    background:#e74c3c;
+}
+
+.small{
+    font-size:14px;
+    color:#666;
+    text-align:center;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- LOGIN -->
+    <div id="auth">
+
+        <h1>🍕 Pizzería Pro</h1>
+
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+
+        <!-- REGISTRO -->
+        <div id="registerBox">
+
+            <input type="text" id="businessName" placeholder="Nombre del negocio">
+
+            <input type="email" id="registerEmail" placeholder="Email">
+
+            <input type="password" id="registerPassword" placeholder="Contraseña">
+
+            <button onclick="register()">
+                Crear cuenta
+            </button>
+
+            <div class="link">
+                ¿Ya tienes cuenta?
+                <a onclick="showLogin()">Iniciar sesión</a>
+            </div>
+
+        </div>
+
+        <!-- LOGIN -->
+        <div id="loginBox" style="display:none;">
+
+            <input type="email" id="loginEmail" placeholder="Email">
+
+            <input type="password" id="loginPassword" placeholder="Contraseña">
+
+            <button onclick="login()">
+                Entrar
+            </button>
+
+            <div class="link">
+                ¿No tienes cuenta?
+                <a onclick="showRegister()">Crear cuenta</a>
+            </div>
+
+        </div>
+
     </div>
-    <button class="logout-btn" onclick="logout()" style="margin-top:30px">Cerrar sesión</button>
-  </div>
+
+    <!-- DASHBOARD -->
+    <div id="dashboard">
+
+        <h1>🍕 Pizzería Pro</h1>
+
+        <div class="card">
+            <strong>Negocio:</strong>
+            <span id="showBusiness"></span>
+        </div>
+
+        <div class="card">
+            <strong>Email:</strong>
+            <span id="showEmail"></span>
+        </div>
+
+        <h2>Tu sistema de gestión</h2>
+
+        <div class="grid">
+
+            <div class="module" onclick="abrirModulo('Movimientos')">
+                📋 Movimientos
+            </div>
+
+            <div class="module" onclick="abrirModulo('Pizzas')">
+                🍕 Pizzas
+            </div>
+
+            <div class="module" onclick="abrirModulo('Stock')">
+                📦 Stock
+            </div>
+
+            <div class="module" onclick="abrirModulo('Análisis')">
+                📈 Análisis
+            </div>
+
+            <div class="module" onclick="abrirModulo('Configuración')">
+                ⚙️ Configuración
+            </div>
+
+            <div class="module" onclick="abrirModulo('Ventas')">
+                💰 Ventas
+            </div>
+
+        </div>
+
+        <div id="moduloContenido"></div>
+
+        <button class="logout" onclick="logout()">
+            Cerrar sesión
+        </button>
+
+    </div>
+
 </div>
 
-<script src="firebase-config.js"></script>
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+
 <script>
-let currentUser=null;
-firebase.auth().onAuthStateChanged(user=>{ if(user){ currentUser=user; showDashboard(); loadUserData(); } else { showAuthForm(); }});
-function toggleForm(){ const s=document.getElementById('signupForm'), l=document.getElementById('loginForm'); if(s.style.display==='none'){s.style.display='block';l.style.display='none'}else{s.style.display='none';l.style.display='block'}; clearMessages(); }
-function signup(){ const e=signupEmail.value,p=signupPassword.value,b=businessName.value; if(!e||!p||!b) return showError('Completa todos los campos'); firebase.auth().createUserWithEmailAndPassword(e,p).then(c=>firebase.database().ref('users/'+c.user.uid).set({email:e,businessName:b})).then(()=>showDashboard()).catch(x=>showError(x.message)); }
-function login(){ firebase.auth().signInWithEmailAndPassword(loginEmail.value,loginPassword.value).catch(x=>showError(x.message)); }
-function logout(){ firebase.auth().signOut(); }
-function showAuthForm(){ authForm.style.display='block'; dashboard.style.display='none'; }
-function showDashboard(){ authForm.style.display='none'; dashboard.style.display='block'; if(firebase.auth().currentUser) displayEmail.textContent=firebase.auth().currentUser.email; displayBusinessName.textContent=businessName.value||'Mi Pizzería'; }
-function loadUserData(){ const u=firebase.auth().currentUser; if(!u) return; firebase.database().ref('users/'+u.uid).once('value').then(s=>{ if(s.exists()) displayBusinessName.textContent=s.val().businessName; }); }
-function showError(m){ error.innerText='❌ '+m; error.style.display='block'; setTimeout(()=>error.style.display='none',4000); }
-function clearMessages(){ error.style.display='none'; success.style.display='none'; }
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDwUirH-Ylk5WkTPCpPAMuU5l4bWLDljVo",
+  authDomain: "pizzeria-pro-e0964.firebaseapp.com",
+  databaseURL: "https://pizzeria-pro-e0964-default-rtdb.firebaseio.com",
+  projectId: "pizzeria-pro-e0964",
+  storageBucket: "pizzeria-pro-e0964.firebasestorage.app",
+  messagingSenderId: "820646614801",
+  appId: "1:820646614801:web:e03f1a15e696d95bbe5eb0"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+function showError(msg){
+    const el=document.getElementById("error");
+    el.style.display="block";
+    el.innerText=msg;
+
+    setTimeout(()=>{
+        el.style.display="none";
+    },4000);
+}
+
+function showSuccess(msg){
+    const el=document.getElementById("success");
+    el.style.display="block";
+    el.innerText=msg;
+
+    setTimeout(()=>{
+        el.style.display="none";
+    },3000);
+}
+
+function showLogin(){
+    document.getElementById("registerBox").style.display="none";
+    document.getElementById("loginBox").style.display="block";
+}
+
+function showRegister(){
+    document.getElementById("registerBox").style.display="block";
+    document.getElementById("loginBox").style.display="none";
+}
+
+function register(){
+
+    const business=document.getElementById("businessName").value;
+    const email=document.getElementById("registerEmail").value;
+    const password=document.getElementById("registerPassword").value;
+
+    if(!business || !email || !password){
+        showError("Completa todos los campos");
+        return;
+    }
+
+    firebase.auth().createUserWithEmailAndPassword(email,password)
+
+    .then((userCredential)=>{
+
+        const uid=userCredential.user.uid;
+
+        firebase.database().ref("users/"+uid).set({
+            business:business,
+            email:email
+        });
+
+        showSuccess("Cuenta creada");
+
+    })
+
+    .catch((error)=>{
+        showError(error.message);
+    });
+}
+
+function login(){
+
+    const email=document.getElementById("loginEmail").value;
+    const password=document.getElementById("loginPassword").value;
+
+    firebase.auth().signInWithEmailAndPassword(email,password)
+
+    .catch((error)=>{
+        showError(error.message);
+    });
+}
+
+function logout(){
+    firebase.auth().signOut();
+}
+
+firebase.auth().onAuthStateChanged((user)=>{
+
+    if(user){
+
+        firebase.database().ref("users/"+user.uid).once("value")
+
+        .then((snapshot)=>{
+
+            const data=snapshot.val();
+
+            document.getElementById("showBusiness").innerText=data.business;
+            document.getElementById("showEmail").innerText=data.email;
+
+            document.getElementById("auth").style.display="none";
+            document.getElementById("dashboard").style.display="block";
+
+        });
+
+    }else{
+
+        document.getElementById("auth").style.display="block";
+        document.getElementById("dashboard").style.display="none";
+
+    }
+
+});
+
+function abrirModulo(nombre){
+
+    const box=document.getElementById("moduloContenido");
+
+    box.style.display="block";
+
+    if(nombre==="Movimientos"){
+
+        box.innerHTML=`
+            <h2>📋 Movimientos</h2>
+
+            <p class="small">
+            Aquí podrás registrar ingresos y gastos.
+            </p>
+
+            <input placeholder="Descripción">
+
+            <input type="number" placeholder="Monto">
+
+            <button>Guardar movimiento</button>
+        `;
+    }
+
+    else if(nombre==="Pizzas"){
+
+        box.innerHTML=`
+            <h2>🍕 Pizzas</h2>
+
+            <p class="small">
+            Gestiona tu carta de pizzas.
+            </p>
+
+            <input placeholder="Nombre pizza">
+
+            <input type="number" placeholder="Precio">
+
+            <button>Guardar pizza</button>
+        `;
+    }
+
+    else if(nombre==="Stock"){
+
+        box.innerHTML=`
+            <h2>📦 Stock</h2>
+
+            <p class="small">
+            Control de inventario.
+            </p>
+
+            <input placeholder="Producto">
+
+            <input type="number" placeholder="Cantidad">
+
+            <button>Guardar stock</button>
+        `;
+    }
+
+    else if(nombre==="Análisis"){
+
+        box.innerHTML=`
+            <h2>📈 Análisis</h2>
+
+            <div class="card">
+                Ventas del mes: $0
+            </div>
+
+            <div class="card">
+                Gastos del mes: $0
+            </div>
+
+            <div class="card">
+                Balance: $0
+            </div>
+        `;
+    }
+
+    else if(nombre==="Configuración"){
+
+        box.innerHTML=`
+            <h2>⚙️ Configuración</h2>
+
+            <input placeholder="Nombre negocio">
+
+            <input placeholder="Moneda">
+
+            <button>Guardar configuración</button>
+        `;
+    }
+
+    else if(nombre==="Ventas"){
+
+        box.innerHTML=`
+            <h2>💰 Ventas</h2>
+
+            <input placeholder="Cliente">
+
+            <input type="number" placeholder="Total venta">
+
+            <button>Registrar venta</button>
+        `;
+    }
+}
+
 </script>
+
 </body>
 </html>
